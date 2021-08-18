@@ -1,0 +1,29 @@
+task_modules:
+- tasks
+Tasks:
+  A:
+    class: GenerateRandomData
+    len: 100
+    seed: 1234
+  B:
+    class: GenerateRandomData
+    len: 100
+    seed: 2345
+  DelayB:
+    class: Delay
+    in: B->out
+    delay: 5
+  ApB:
+    class: Add
+    addends: [A->out, DelayB->out]
+  DelayC:
+    class: Delay
+    delay: 12
+  C:
+    in: DelayC->out
+    class: GenerateRandomData
+    len: 100
+    seed: 3456
+  ApBpC:
+    class: Add
+    addends: [A->out,DelayB->out,C->out]
