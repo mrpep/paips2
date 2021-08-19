@@ -6,10 +6,12 @@ import fnmatch
 import time
 import os
 from pathlib import Path
+from shutil import copyfile
 
 class Task:
     def __init__(self, config, name=None, logger=None, global_flags={'experiment_name': 'test'}):
         self.config = Config(config)
+        self.original_config = copy.deepcopy(self.config)
         self.global_flags = global_flags
         self.cacheable = self.config.get('cache',global_flags.get('cache',True))
         self.in_memory = self.config.get('in_memory',global_flags.get('in_memory',False))
@@ -45,6 +47,11 @@ class Task:
                     self.logger.warning('An exported file already exists in {}. Saved as version {}'.format(destination_path, version_number-1))
                 if not equal_version_found:
                     os.symlink(str(data_address.absolute()), str(destination_path.absolute()))
+                    if version_number == 2:
+                        v = ''
+                    else:
+                        v = '_v{}'.format(version_number-1)
+                    self.original_config.save(Path(destination_path.parent,'config{}.yaml'.format(v)))
 
     def format_outputs(self,outs,output_names,hash,storage_device='memory'):
         if not isinstance(outs,tuple):
