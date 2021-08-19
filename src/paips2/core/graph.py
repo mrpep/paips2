@@ -4,7 +4,7 @@ from .graph_func import enqueue_tasks, wait_task_completion, run_next_task, gath
 class Graph(Task):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.global_flags['backend'] = 'ray'
+        self.global_flags['backend'] = 'sequential'
         self.backend = self.config.get('backend',self.global_flags.get('backend','ray'))
 
     def run(self):
