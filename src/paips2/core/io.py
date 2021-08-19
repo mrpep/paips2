@@ -89,6 +89,4 @@ class TaskIO:
         if (self.address.filesystem == 's3') and not export:
             self.address.upload_from(self.address.local_filename)
 
-        #Make symlink
-
         return TaskIO(self.address.local_filename,self.hash,storage_device='disk',name=self.name)
