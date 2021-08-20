@@ -4,11 +4,10 @@ from .graph_func import enqueue_tasks, wait_task_completion, run_next_task, gath
 class Graph(Task):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.global_flags['backend'] = 'sequential'
         self.backend = self.config.get('backend',self.global_flags.get('backend','ray'))
 
-    def run(self):
-        tasks = gather_tasks(self.config, self.logger) #Arma el diccionario de tareas a partir del archivo de configuracion
+    def process(self):
+        tasks = gather_tasks(self.config, self.logger, self.global_flags) #Arma el diccionario de tareas a partir del archivo de configuracion
         to_do_tasks = list(tasks.keys())
         done_tasks = []
         available_tasks = enqueue_tasks(tasks,to_do_tasks,done_tasks) #Se fija cuales ya se pueden ejecutar

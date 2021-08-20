@@ -20,7 +20,7 @@ def enqueue_tasks(tasks, to_do_tasks, done_tasks):
     available_tasks = [heapq.heappop(available_tasks)[1] for i in range(len(available_tasks))]
     return available_tasks
 
-def gather_tasks(config, logger):
+def gather_tasks(config, logger, global_flags):
     task_modules = get_modules(config.get('task_modules'))
     tasks = {}
     for task_name, task_config in config['Tasks'].items():
@@ -33,7 +33,7 @@ def gather_tasks(config, logger):
             logger.critical('{} found in multiple task modules. Rename the task in your module to avoid name collisions'.format(task_class))
             raise SystemExit(-1)
         task_obj = task_obj[0]
-        tasks[task_name] = task_obj(task_config,task_name,logger)
+        tasks[task_name] = task_obj(task_config,task_name,logger,global_flags=global_flags)
     return tasks
 
 def run_next_task(logger, tasks, to_do_tasks, done_tasks, available_tasks, queued_tasks, tasks_info, tasks_io, mode='ray'):
