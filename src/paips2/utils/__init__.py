@@ -2,9 +2,9 @@ import sys
 from .modiuls import *
 import datetime
 
-def format_logger(logger):
+def format_logger(logger, level=30):
     logger.remove()
-    logger.add(sys.stderr, format="<lvl>{time:YYYY-MM-DD at HH:mm:ss} | {level:10s}| {message}</lvl>", level=0, colorize=True)
+    logger.add(sys.stderr, format="<lvl>{time:YYYY-MM-DD at HH:mm:ss} | {level:10s}| {message}</lvl>", level=level, colorize=True)
 
 def init_backend(backend):
     if backend == 'ray':
@@ -19,9 +19,13 @@ def shutdown_backend(backend):
 def add_arguments(argparser):
     date_time = str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     argparser.add_argument('config_path', help='Path to YAML config file for running experiment')
+    argparser.add_argument('-v', action='store_true', default=False,help='Verbosity level 20')
+    argparser.add_argument('-vv', action='store_true', default=False,help='Verbosity level 10')
+    argparser.add_argument('-vvv', action='store_true', default=False,help='Verbosity level 0')
+    argparser.add_argument('--silent', action='store_true', default=False,help='Deactivate logging')
     argparser.add_argument('--experiment_name', type=str,
                            help='Name for the experiment', default=date_time)
-    argparser.add_argument('--output_path', type=str, help='Output directory for symbolic links of cache',
+    argparser.add_argument('--experiment_path', type=str, help='Output directory for symbolic links of cache',
                            default='experiments/{}'.format(date_time))
     argparser.add_argument('--no-caching', dest='cache',
                            help='Run all', action='store_false', default=True)
