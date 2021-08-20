@@ -6,10 +6,9 @@ import fnmatch
 import time
 import os
 from pathlib import Path
-from shutil import copyfile
 
 class Task:
-    def __init__(self, config, name=None, logger=None, global_flags={'experiment_name': 'test'}):
+    def __init__(self, config, name=None, logger=None, global_flags={}, main=False):
         self.config = Config(config)
         self.original_config = copy.deepcopy(self.config)
         self.global_flags = global_flags
@@ -18,10 +17,11 @@ class Task:
         self.cache_path = self.global_flags.get('cache_path','cache')
         self.export_path = self.global_flags.get('experiment_path',self.global_flags.get('experiment_name'))
         self.do_export = self.config.get('export',self.global_flags.get('export',True))
-        self._hash_config = copy.deepcopy(self.config)
+        self._make_hash_config()
         self.priority = -self.config.get('priority',20)
         self.name = name
         self.logger = logger
+        self.is_main = main
 
     def export(self,outs):
         for k,v in outs.items():
@@ -44,7 +44,7 @@ class Task:
                     else:
                         equal_version_found = True
                 if version_number > 2 and not equal_version_found:
-                    self.logger.warning('An exported file already exists in {}. Saved as version {}'.format(destination_path, version_number-1))
+                    self.logger.warning('An exported file already exists in {}. Saved as version {}'.format(destination_path, version_number-1),enqueue=True)
                 if not equal_version_found:
                     os.symlink(str(data_address.absolute()), str(destination_path.absolute()))
                     if version_number == 2:
@@ -72,6 +72,13 @@ class Task:
                 dependencies.append(v.split(symbols['membership'])[0])
         return dependencies
 
+    def _make_hash_config(self):
+        self._hash_config = copy.deepcopy(self.config)
+        self._hash_config['class'] = self.__class__.__name__
+        for param in not_cacheable_params:
+            if param in self._hash_config:
+                self._hash_config.pop(param)
+
     def on_cache(self, cache_files, task_hash, output_names):
         #This can be overriden
         return tuple(c for out_name,c in zip(output_names,cache_files))
@@ -83,21 +90,21 @@ class Task:
     def run(self):
         output_names = self.get_output_names()
         task_hash = self.get_hash()
-        self.logger.debug('Task hash: {}'.format(task_hash))
+        self.logger.debug('Task hash: {}'.format(task_hash),enqueue=True)
         cache_results = self.search_cache(task_hash,output_names)
         if (cache_results is not None) and self.cacheable: #Cache if possible
             extra_msg = '' if len(cache_results) == 1 else ' and {} more files'.format(len(cache_results) - 1)
             process_out = self.on_cache(cache_results,task_hash,output_names)
             storage_device = 'disk'
-            self.logger.success('Cached task: {} from {}{}'.format(self.name, cache_results[0], extra_msg))
+            self.logger.success('Cached task: {} from {}{}'.format(self.name, cache_results[0], extra_msg),enqueue=True)
         else: #Run task if not possible
-            self.logger.info('Running task: {}'.format(self.name))
+            self.logger.info('Running task: {}'.format(self.name),enqueue=True)
             task_start = time.time()
             process_out = self.process()
             task_end = time.time()
             execution_time = task_end - task_start
             storage_device = 'memory'
-            self.logger.success('Finished task: {} in {:.2f} s.'.format(self.name,execution_time))
+            self.logger.success('Finished task: {} in {:.2f} s.'.format(self.name,execution_time),enqueue=True)
 
         outs = self.format_outputs(process_out, output_names, task_hash, storage_device=storage_device)
         if (not self.in_memory) and (cache_results is None): #Save outputs if not caching

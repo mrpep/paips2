@@ -5,10 +5,11 @@ Tasks:
     class: GenerateRandomData
     len: 100
     seed: 1234
+    cache: False
   B:
     class: GenerateRandomData
     len: 100
-    seed: 2345
+    seed: 2346
   DelayB:
     class: Delay
     in: B->out
