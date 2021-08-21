@@ -9,19 +9,37 @@ from pathlib import Path
 
 class Task:
     def __init__(self, config, name=None, logger=None, global_flags={}, main=False):
+        self.logger = logger
+
         self.config = Config(config)
         self.original_config = copy.deepcopy(self.config)
+
+        self.priority = -self.config.get('priority',20)
+        self.name = name
+        self.is_main = main
         self.global_flags = global_flags
         self.cacheable = self.config.get('cache',global_flags.get('cache',True))
         self.in_memory = self.config.get('in_memory',global_flags.get('in_memory',False))
         self.cache_path = self.global_flags.get('cache_path','cache')
         self.export_path = self.global_flags.get('experiment_path',self.global_flags.get('experiment_name'))
         self.do_export = self.config.get('export',self.global_flags.get('export',True))
+
+        self._check_parameters()
         self._make_hash_config()
-        self.priority = -self.config.get('priority',20)
-        self.name = name
-        self.logger = logger
-        self.is_main = main
+
+    def _check_parameters(self):
+        required_params, optional_params = self.get_valid_parameters()
+        required_params += common_required_params
+        optional_params += common_optional_params
+
+        missing_params = [param for param in required_params if param not in self.config]
+        if len(missing_params)>0:
+            self.logger.critical('Missing required parameter{} in task {}: {}'.format('s' if len(missing_params)>1 else '', self.name, missing_params))
+            raise SystemExit(-1)
+        unrecognized_params = [param for param in self.config if param not in required_params+optional_params]
+        if len(unrecognized_params)>0:
+            self.logger.critical('Unrecognized parameter{} in task {}: {}'.format('s' if len(unrecognized_params)>1 else '', self.name, unrecognized_params))
+            raise SystemExit(-1)
 
     def export(self,outs):
         for k,v in outs.items():
@@ -58,13 +76,6 @@ class Task:
             outs = (outs,)
         return {'{}{}{}'.format(self.name,symbols['membership'],k): TaskIO(v,hash,name=k,storage_device=storage_device) for k,v in zip(output_names,outs)}
 
-    def get_hash(self):
-        return self._hash_config.hash()
-
-    def get_output_names(self):
-        #Overrideable
-        return self.config.get('output_names',['out'])
-
     def get_dependencies(self):
         dependencies = []
         for k,v in self.config.to_shallow().items():
@@ -72,9 +83,19 @@ class Task:
                 dependencies.append(v.split(symbols['membership'])[0])
         return dependencies
 
+    def get_hash(self):
+        return self._hash_config.hash()
+
+    def get_output_names(self):
+        #Overrideable
+        return self.config.get('output_names',['out'])
+
+    def get_valid_parameters(self):
+        #Each task should override this method
+        return common_required_params, common_optional_params
+
     def _make_hash_config(self):
         self._hash_config = copy.deepcopy(self.config)
-        self._hash_config['class'] = self.__class__.__name__
         for param in not_cacheable_params:
             if param in self._hash_config:
                 self._hash_config.pop(param)

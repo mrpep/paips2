@@ -25,7 +25,7 @@ def main():
     init_backend(args['backend'])
     logger.info('Running experiment {}. Outputs will be saved in {}'.format(args['experiment_name'], args['experiment_path']))
     config = Config(args['config_path'])
-    
+    config['class'] = 'Graph'
     graph = Graph(config=config, name='main_graph',logger=logger, global_flags=args, main=True)
     graph.cacheable = False
     graph.run()

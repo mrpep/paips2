@@ -23,8 +23,8 @@ def enqueue_tasks(tasks, to_do_tasks, done_tasks):
 def gather_tasks(config, logger, global_flags):
     task_modules = get_modules(config.get('task_modules'))
     tasks = {}
-    for task_name, task_config in config['Tasks'].items():
-        task_class = task_config.pop('class')
+    for task_name, task_config in config['tasks'].items():
+        task_class = task_config['class']
         task_obj = [getattr(module,task_class) for module in task_modules if task_class in get_classes_in_module(module)]
         if len(task_obj) == 0:
             logger.critical('{} not recognized as a task'.format(task_class))

@@ -6,6 +6,9 @@ class Graph(Task):
         super().__init__(*args, **kwargs)
         self.backend = self.config.get('backend',self.global_flags.get('backend','ray'))
 
+    def get_valid_parameters(self):
+        return ['tasks'], ['task_modules']
+
     def process(self):
         tasks = gather_tasks(self.config, self.logger, self.global_flags) #Arma el diccionario de tareas a partir del archivo de configuracion
         to_do_tasks = list(tasks.keys())

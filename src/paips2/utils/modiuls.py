@@ -27,22 +27,19 @@ def get_modules(module_paths):
     """
     Get all the modules where task definitions are found
     """
-
     task_modules = []
     for module_path in module_paths:
         try:
             module = module_from_file(Path(module_path).stem,module_path)
         except:
             try:
-                module = module_from_folder(module_path)    
+                module = importlib.import_module(module_path)
             except:
                 try:
-                    module = importlib.import_module(module_path)
+                    module = module_from_folder(module_path)
                 except:
                     raise Exception('Could not import Module {}'.format(module_path))
-
         task_modules.append(module)
-
     return task_modules
 
 def get_classes_in_module(module):
