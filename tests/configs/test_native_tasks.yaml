@@ -1,0 +1,20 @@
+task_modules:
+- paips2.tasks
+tasks:
+  TestPythonFunction1:
+    class: PythonFunction
+    file_path: scripts/pyfunc.py
+    function_name: operate
+    function_args: [2,5]
+    function_kwargs:
+      operation: mul
+  TestPythonFunction2:
+    class: PythonFunction
+    file_path: scripts/pyfunc.py
+    function_name: operate
+    function_args: [2,5]
+  TestShScript:
+    class: ShScript
+    command: wget https://upload.wikimedia.org/wikipedia/commons/4/49/Koala_climbing_tree.jpg
+    shell: True
+  

@@ -1,6 +1,6 @@
 task_modules:
 - tasks
-Tasks:
+tasks:
   A:
     class: GenerateRandomData
     len: 100
