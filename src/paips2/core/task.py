@@ -48,7 +48,10 @@ class Task:
                     data_address = Path(v.data)
                 else:
                     data_address = Path(v.data.local_filename)
-                destination_path = Path(self.export_path,self.name,k.split(symbols['membership'])[-1])
+                if self.is_main:
+                    destination_path = Path(self.export_path,k.split(symbols['membership'])[-1])
+                else:
+                    destination_path = Path(self.export_path,self.name,k.split(symbols['membership'])[-1])
                 if not destination_path.parent.exists():
                     destination_path.parent.mkdir(parents=True)
 

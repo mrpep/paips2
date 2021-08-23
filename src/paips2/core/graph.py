@@ -13,8 +13,10 @@ class Graph(Task):
 
     def process(self):
         tasks = gather_tasks(self.config, self.logger, self.global_flags) #Arma el diccionario de tareas a partir del archivo de configuracion
-        sankey_plot(tasks, Path(self.export_path,self.name,'graph.html')) #Plotea el grafo y lo guarda en un html
-
+        if self.is_main:
+            sankey_plot(tasks, Path(self.export_path,'main_graph.html')) #Plotea el grafo y lo guarda en un html
+        else:
+            sankey_plot(tasks, Path(self.export_path,self.name,'graph.html'))
         to_do_tasks = list(tasks.keys())
         done_tasks = []
         available_tasks = enqueue_tasks(tasks,to_do_tasks,done_tasks) #Se fija cuales ya se pueden ejecutar
