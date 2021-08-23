@@ -1,5 +1,7 @@
 from .task import Task
 from .graph_func import enqueue_tasks, wait_task_completion, run_next_task, gather_tasks
+from paips2.utils import sankey_plot
+from pathlib import Path
 
 class Graph(Task):
     def __init__(self, *args, **kwargs):
@@ -11,6 +13,8 @@ class Graph(Task):
 
     def process(self):
         tasks = gather_tasks(self.config, self.logger, self.global_flags) #Arma el diccionario de tareas a partir del archivo de configuracion
+        sankey_plot(tasks, Path(self.export_path,self.name,'graph.html')) #Plotea el grafo y lo guarda en un html
+
         to_do_tasks = list(tasks.keys())
         done_tasks = []
         available_tasks = enqueue_tasks(tasks,to_do_tasks,done_tasks) #Se fija cuales ya se pueden ejecutar

@@ -1,5 +1,6 @@
 import sys
 from .modiuls import *
+from .plots import *
 import datetime
 
 def format_logger(logger, level=30):
