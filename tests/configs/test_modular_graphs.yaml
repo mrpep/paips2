@@ -1,0 +1,31 @@
+task_modules:
+- paips2.tasks
+tasks:
+  Data1:
+    class: PythonFunction
+    file_path: scripts/pyfunc.py
+    function_name: operate
+    function_args: [0,5]
+    function_kwargs:
+      operation: sum
+  Data2:
+    class: PythonFunction
+    file_path: scripts/pyfunc.py
+    function_name: operate
+    function_args: [Data1->out,5]
+    function_kwargs:
+      operation: mul
+  BigCrazyTask:
+    class: GraphModule
+    graph: configs/crazy_module.yaml
+    in:
+      arg1: Data1->out
+      arg2: Data2->out
+  LastTask:
+    class: PythonFunction
+    file_path: scripts/pyfunc.py
+    function_name: operate
+    function_args: [BigCrazyTask->a,BigCrazyTask->b]
+    function_kwargs:
+      operation: mul
+  

@@ -1,0 +1,23 @@
+CrazyTask:
+  class: Graph
+  in:
+    arg1: null
+    arg2: null
+  out:
+    a: Crazy1->out
+    b: Crazy2->out
+  tasks:
+    Crazy1:
+      class: PythonFunction
+      file_path: scripts/pyfunc.py
+      function_name: operate
+      function_args: [self->arg1,self->arg2]
+      function_kwargs:
+        operation: sum
+    Crazy2:
+      class: PythonFunction
+      file_path: scripts/pyfunc.py
+      function_name: operate
+      function_args: [self->arg1,Crazy1->out]
+      function_kwargs:
+        operation: mul

@@ -23,15 +23,16 @@ def sankey_plot(tasks, output_path):
             hover_data.append(hover_data_i)
         deps = task.get_dependencies()
         for dep in deps:
-            if dep not in task_name_to_number:
-                task_name_to_number[dep] = i
-                i += 1
-                label.append(dep)
-                hover_data_i = generate_tooltip(dep, tasks[dep])
-                hover_data.append(hover_data_i)
-            target.append(task_name_to_number[task_name])
-            source.append(task_name_to_number[dep])
-            value.append(1.0)
+            if dep != 'self':
+                if dep not in task_name_to_number:
+                    task_name_to_number[dep] = i
+                    i += 1
+                    label.append(dep)
+                    hover_data_i = generate_tooltip(dep, tasks[dep])
+                    hover_data.append(hover_data_i)
+                target.append(task_name_to_number[task_name])
+                source.append(task_name_to_number[dep])
+                value.append(1.0)
 
     node = dict(
             pad = 15,

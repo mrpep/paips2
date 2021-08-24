@@ -21,7 +21,7 @@ def enqueue_tasks(tasks, to_do_tasks, done_tasks):
     return available_tasks
 
 def gather_tasks(config, logger, global_flags):
-    task_modules = get_modules(config.get('task_modules'))
+    task_modules = get_modules(global_flags.get('task_modules',[]))
     tasks = {}
     for task_name, task_config in config['tasks'].items():
         task_class = task_config['class']
