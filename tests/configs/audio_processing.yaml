@@ -1,0 +1,43 @@
+task_modules:
+- paips2.tasks
+tasks:
+  ReadClotho:
+    class: ClothoReader
+    dataset_path: /home/lpepino/clotho
+  ExtractFeatures:
+    class: DataframeApply
+    in: ReadClotho->out
+    processing_task: LogmelspectrogramExtractor->out
+    column_in: 
+      filename: name
+    column_out: 
+      logmelspectrogram: logmelspectrogram
+    h5_file: clotho_logmel.h5
+  LogmelspectrogramExtractor:
+    class: Graph
+    lazy: True
+    in_memory: True
+    cache: False
+    in:
+      filename: null
+    out:
+      logmelspectrogram: Logmelspectrogram->out
+    tasks:
+      ReadAudio:
+        class: ReadAudio
+        in: self->filename
+        cache: False
+        in_memory: True
+      Logmelspectrogram:
+        class: TimeFrequencyRepresentation
+        in: ReadAudio->out
+        representation: melspectrogram
+        log: True
+        parameters:
+          n_mels: 128
+          fmin: 0
+          fmax: 8000
+        cache: False
+        in_memory: True
+  
+  
