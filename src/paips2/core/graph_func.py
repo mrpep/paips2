@@ -27,10 +27,12 @@ def gather_tasks(config, logger, global_flags):
         task_class = task_config['class']
         task_obj = [getattr(module,task_class) for module in task_modules if task_class in get_classes_in_module(module)]
         if len(task_obj) == 0:
-            logger.critical('{} not recognized as a task'.format(task_class))
+            if logger is not None:
+                logger.critical('{} not recognized as a task'.format(task_class))
             raise SystemExit(-1)
         elif len(task_obj) > 1:
-            logger.critical('{} found in multiple task modules. Rename the task in your module to avoid name collisions'.format(task_class))
+            if logger is not None:
+                logger.critical('{} found in multiple task modules. Rename the task in your module to avoid name collisions'.format(task_class))
             raise SystemExit(-1)
         task_obj = task_obj[0]
         tasks[task_name] = task_obj(task_config,task_name,logger,global_flags=global_flags)
