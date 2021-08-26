@@ -9,6 +9,9 @@ class PythonFunction(Task):
     def get_valid_parameters(self):
         return ['file_path','function_name'], ['function_args', 'function_kwargs']
     
+    def get_output_names(self):
+        return self.config.get('output_names','out')
+
     def process(self):
         file_path = self.config.get('file_path')
         func_name = self.config.get('function_name')
