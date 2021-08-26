@@ -46,7 +46,7 @@ def sankey_plot(tasks, output_path):
     link = dict(source = source, target = target, value = value)
     data = go.Sankey(node=node, link = link)
     fig = go.Figure(data)
-    fig.show()
+    #fig.show()
 
     if not output_path.parent.exists():
         output_path.parent.mkdir(parents=True)
