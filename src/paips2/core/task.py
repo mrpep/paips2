@@ -23,6 +23,7 @@ class Task:
         self.cache_path = self.global_flags.get('cache_path','cache')
         self.export_path = self.global_flags.get('experiment_path',self.global_flags.get('experiment_name'))
         self.do_export = self.config.get('export',self.global_flags.get('export',True))
+        self.is_lazy = self.config.get('lazy',False)
 
         self._check_parameters()
         self._make_hash_config()
@@ -34,14 +35,17 @@ class Task:
 
         missing_params = [param for param in required_params if param not in self.config]
         if len(missing_params)>0:
-            self.logger.critical('Missing required parameter{} in task {}: {}'.format('s' if len(missing_params)>1 else '', self.name, missing_params))
+            if self.logger is not None:
+                self.logger.critical('Missing required parameter{} in task {}: {}'.format('s' if len(missing_params)>1 else '', self.name, missing_params))
             raise SystemExit(-1)
         unrecognized_params = [param for param in self.config if param not in required_params+optional_params]
         if len(unrecognized_params)>0:
-            self.logger.critical('Unrecognized parameter{} in task {}: {}'.format('s' if len(unrecognized_params)>1 else '', self.name, unrecognized_params))
+            if self.logger is not None:
+                self.logger.critical('Unrecognized parameter{} in task {}: {}'.format('s' if len(unrecognized_params)>1 else '', self.name, unrecognized_params))
             raise SystemExit(-1)
 
     def export(self,outs):
+        self.on_export(outs)
         for k,v in outs.items():
             if v.storage_device == 'disk':
                 if isinstance(v.data, str):
@@ -65,7 +69,8 @@ class Task:
                     else:
                         equal_version_found = True
                 if version_number > 2 and not equal_version_found:
-                    self.logger.warning('An exported file already exists in {}. Saved as version {}'.format(destination_path, version_number-1),enqueue=True)
+                    if self.logger is not None:
+                        self.logger.warning('An exported file already exists in {}. Saved as version {}'.format(destination_path, version_number-1),enqueue=True)
                 if not equal_version_found:
                     os.symlink(str(data_address.absolute()), str(destination_path.absolute()))
                     if version_number == 2:
@@ -73,6 +78,10 @@ class Task:
                     else:
                         v = '_v{}'.format(version_number-1)
                     self.original_config.save(Path(destination_path.parent,'config{}.yaml'.format(v)))
+
+    def on_export(self, outs):
+        #Overrideable to save custom files like .csv, plots, etc...
+        pass
 
     def format_outputs(self,outs,output_names,hash,storage_device='memory'):
         if not isinstance(outs,tuple):
@@ -114,21 +123,29 @@ class Task:
     def run(self):
         output_names = self.get_output_names()
         task_hash = self.get_hash()
-        self.logger.debug('Task hash: {}'.format(task_hash),enqueue=True)
+        if self.logger is not None:
+            self.logger.debug('Task hash: {}'.format(task_hash),enqueue=True)
         cache_results = self.search_cache(task_hash,output_names)
         if (cache_results is not None) and self.cacheable: #Cache if possible
             extra_msg = '' if len(cache_results) == 1 else ' and {} more files'.format(len(cache_results) - 1)
             process_out = self.on_cache(cache_results,task_hash,output_names)
             storage_device = 'disk'
-            self.logger.success('Cached task: {} from {}{}'.format(self.name, cache_results[0], extra_msg),enqueue=True)
+            if self.logger is not None:
+                self.logger.success('Cached task: {} from {}{}'.format(self.name, cache_results[0], extra_msg),enqueue=True)
         else: #Run task if not possible
-            self.logger.info('Running task: {}'.format(self.name),enqueue=True)
+            if self.logger is not None:
+                self.logger.info('Running task: {}'.format(self.name),enqueue=True)
             task_start = time.time()
-            process_out = self.process()
+            if self.is_lazy:
+                self.is_lazy = False
+                process_out = self
+            else:
+                process_out = self.process()
             task_end = time.time()
             execution_time = task_end - task_start
             storage_device = 'memory'
-            self.logger.success('Finished task: {} in {:.2f} s.'.format(self.name,execution_time),enqueue=True)
+            if self.logger is not None:
+                self.logger.success('Finished task: {} in {:.2f} s.'.format(self.name,execution_time),enqueue=True)
 
         outs = self.format_outputs(process_out, output_names, task_hash, storage_device=storage_device)
         if (not self.in_memory) and (cache_results is None): #Save outputs if not caching
@@ -156,12 +173,15 @@ class Task:
     def send_dependency_data(self,data):
         #If glob patterns, replace by dependencies names
         glob_keys = self.config.find_path('*',mode='contains',action=lambda x: fnmatch.filter(list(data.keys()),x) if symbols['membership'] in x else x)
-        glob_keys = self._hash_config.find_path('*',mode='contains',action=lambda x: fnmatch.filter(list(data.keys()),x) if symbols['membership'] in x else x)
+        if not self.in_memory:
+            glob_keys = self._hash_config.find_path('*',mode='contains',action=lambda x: fnmatch.filter(list(data.keys()),x) if symbols['membership'] in x else x)
         
         for k,v in data.items():
-            paths = self._hash_config.find_path(k,action=lambda x: v.hash)
-            if len(paths) > 0:
-                self.config.find_path(k,action=lambda x: v.load())
+            if not self.in_memory:
+                paths = self._hash_config.find_path(k,action=lambda x: v.hash)
+            #if len(paths) > 0:
+            self.config.find_path(k,action=lambda x: v.load())
+
             #else:
             #    if self.simulate and not k.startswith('self'):
             #        k_ = k.split('->')[0]+'->'
