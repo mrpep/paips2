@@ -5,3 +5,4 @@ from .generic import *
 from .graphs import *
 from .h5 import *
 from .ml import *
+from .text import *

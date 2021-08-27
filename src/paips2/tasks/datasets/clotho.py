@@ -6,7 +6,7 @@ from pathlib import Path
 
 class ClothoReader(Task):
     def get_valid_parameters(self):
-        return ['dataset_path'], []
+        return ['dataset_path'], ['max_rows']
 
     def process(self):
         dataset_path = self.config.get('dataset_path')
@@ -22,4 +22,7 @@ class ClothoReader(Task):
             dfs.append(df_split)
 
         df_clotho = pd.concat(dfs)
+        if self.config.get('max_rows'):
+            df_clotho = df_clotho.sample(self.config.get('max_rows'))
+        
         return df_clotho

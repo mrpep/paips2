@@ -40,3 +40,29 @@ class DataframeApply(Task):
             dataframe[[column_out[col] for col in output_names]] = dataframe.progress_apply(apply_graph_df,axis=1,result_type='expand')
         
         return dataframe
+
+class DataframeFilterByColumn(Task):
+    def get_valid_parameters(self):
+        return ['in', 'column'], []
+    
+    def get_output_names(self):
+        return list(self.config.get('in')[self.config.get('column')].unique())
+
+    def process(self):
+        df = self.config.get('in')
+        col = self.config.get('column')
+        dfs = [df.loc[df[col] == col_val] for col_val in self.get_output_names()]
+
+        return tuple(dfs)
+
+class DataframeMelt(Task):
+    def get_valid_parameters(self):
+        return ['in','var_name','value_name'], ['columns','exclude_columns']
+
+    def process(self):
+        df = self.config.get('in')
+        if self.config.get('exclude_columns'):
+            columns = [col for col in df.columns if col not in self.config.get('exclude_columns')]
+        else:
+            columns = self.config.get('columns')
+        return df.melt(columns,var_name=self.config.get('var_name'),value_name=self.config.get('value_name'))

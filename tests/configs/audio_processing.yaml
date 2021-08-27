@@ -4,6 +4,7 @@ tasks:
   ReadClotho:
     class: ClothoReader
     dataset_path: /home/lpepino/clotho
+    max_rows: 100
   ExtractFeatures:
     class: DataframeApply
     in: ReadClotho->out
@@ -13,6 +14,12 @@ tasks:
     column_out: 
       logmelspectrogram: logmelspectrogram
     h5_file: clotho_logmel.h5
+  MultipleRowsForCaptions:
+    class: DataframeMelt
+    in: ExtractFeatures->out
+    exclude_columns: [caption_1,caption_2,caption_3,caption_4,caption_5]
+    var_name: caption_number
+    value_name: caption
   LogmelspectrogramExtractor:
     class: Graph
     lazy: True
@@ -39,5 +46,41 @@ tasks:
           fmax: 8000
         cache: False
         in_memory: True
+  TextPreprocessor:
+    class: Graph
+    lazy: True
+    in_memory: True
+    cache: False
+    in:
+      text: null
+    out:
+      processed_text: Standarize->tokens
+    tasks:
+      Standarize:
+        class: TextStandarizer
+        in: self->text
+        lowercase: True
+        remove_punctuation: True
+        remove_stop_words: True
+        language: english
+  PreprocessCaptions:
+    class: DataframeApply
+    in: MultipleRowsForCaptions->out
+    processing_task: TextPreprocessor->out
+    column_in: 
+      text: caption
+    column_out: 
+      processed_text: standarized_caption
+  WordOneHotVector:
+    class: WordOneHotVector
+    special_tokens: ['[SOS]','[EOS]','[PAD]']
+    in: PreprocessCaptions->out
+    column_in: standarized_caption
+    column_out: target_text
+  ClothoPartitions:
+    class: DataframeFilterByColumn
+    in: WordOneHotVector->out
+    column: split
+
   
   
