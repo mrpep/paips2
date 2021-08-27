@@ -35,7 +35,7 @@ class WordOneHotVector(Task):
         return ['in'], ['special_tokens', 'input_type', 'column_in', 'column_out', 'max_seq_len']
 
     def get_output_names(self):
-        return ['out','vocab']
+        return ['out','word_to_index','index_to_word']
 
     def process(self):
         text = self.config.get('in')
@@ -72,5 +72,6 @@ class WordOneHotVector(Task):
                 return v
 
             text[column_out] = text[column_in].apply(vectorize_fn)
+            index_to_word = {v:k for k,v in vocab.items()}
 
-        return text, vocab
+        return text, vocab, index_to_word
