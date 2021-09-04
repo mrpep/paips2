@@ -14,6 +14,8 @@ CrazyTask:
       function_args: [self->arg1,self->arg2]
       function_kwargs:
         operation: sum
+      cache: False
+      in_memory: True
     Crazy2:
       class: PythonFunction
       file_path: scripts/pyfunc.py
@@ -21,3 +23,5 @@ CrazyTask:
       function_args: [self->arg1,Crazy1->out]
       function_kwargs:
         operation: mul
+      cache: False
+      in_memory: True
