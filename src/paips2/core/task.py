@@ -189,4 +189,7 @@ class Task:
             #        k_ = k.split('->')[0]+'->'
             #        paths = self._hash_dict.find_path(k_,action=lambda x: v.hash,mode='startswith')
 
-
+    def __getstate__(self):
+        #Problems for serializing lazy tasks as logger is unpickleable
+        self.__dict__['logger'] = None
+        return self.__dict__

@@ -63,18 +63,12 @@ class Graph(Task):
                 task_output = wait_task_completion(self.logger,self.tasks,to_do_tasks,done_tasks,available_tasks,queued_tasks,tasks_info,mode=self.children_backend)
                 tasks_io.update(task_output)
                 available_tasks = enqueue_tasks(self.tasks,to_do_tasks,done_tasks)
-                
+
         graph_outs = self.config.get('out')
         if graph_outs is not None:
             return tuple([tasks_io[graph_outs[out_name]].load() for out_name in self.get_output_names()])
 
-
     def process(self):
         self.make_dag()
         return self.run_through_graph()
-
-    def __getstate__(self):
-        #Problems for serializing lazy graphs as logger is unpickleable
-        self.__dict__['logger'] = None
-        return self.__dict__
                 

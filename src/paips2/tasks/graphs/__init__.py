@@ -73,7 +73,7 @@ class MapGraph(Task):
             return self.map_process(self.config['in'], graph_name, graph_task)
         else:
             import ray
-            ray.init() #Check this
+            ray.init(ignore_reinit_error=True)
 
             data_len = max([len(v) for k,v in self.config['in'].items()])
             worker_chunksize = data_len//n_workers
