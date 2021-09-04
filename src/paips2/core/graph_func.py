@@ -42,20 +42,22 @@ def run_next_task(logger, tasks, to_do_tasks, done_tasks, available_tasks, queue
     task_name = available_tasks[0]
     task = tasks[task_name]
     task.send_dependency_data(tasks_io)
-    if mode == 'ray':
+    if task.backend is None:
+        task.backend = mode
+    if task.backend == 'ray':
         import ray
         def run_task(task):
             return task.run()
         out = ray.remote(run_task).remote(task)
         queued_tasks[out] = task_name
-    elif mode == 'sequential':
+    elif task.backend == 'sequential':
         out = task.run()
         done_tasks.append(task_name)
     #Se actualizan las listas de tareas a realizar/disponibles, 
     #y se agrega la referencia de ray a un diccionario de tareas encoladas
     to_do_tasks.remove(task_name)
     available_tasks.remove(task_name)
-    return out
+    return out, task.backend
     
 def wait_task_completion(logger, tasks, to_do_tasks, done_tasks, available_tasks, queued_tasks, tasks_info, mode='ray'):
     if mode == 'ray':

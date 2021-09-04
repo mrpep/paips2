@@ -10,9 +10,10 @@ class Graph(Task):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.backend = self.config.get('backend',self.global_flags.get('backend','ray'))
+        self.children_backend = self.config.get('children_backend',self.backend)
 
     def get_valid_parameters(self):
-        return ['tasks'], ['task_modules','out']
+        return ['tasks'], ['task_modules','out','children_backend']
 
     def get_dependencies(self):
         dependencies = []
@@ -54,20 +55,26 @@ class Graph(Task):
 
         while (len(available_tasks) > 0) or (len(queued_tasks) > 0): #Mientras hayan tareas ejecutandose o para hacer
             if len(available_tasks) > 0: #Si hay para hacer entonces manda una (la de mayor prioridad) a ray
-                task_output = run_next_task(self.logger,self.tasks,to_do_tasks,done_tasks,available_tasks,queued_tasks,tasks_info,tasks_io,mode=self.backend)
-                if self.backend == 'sequential':
+                task_output, task_backend = run_next_task(self.logger,self.tasks,to_do_tasks,done_tasks,available_tasks,queued_tasks,tasks_info,tasks_io,mode=self.children_backend)
+                if task_backend == 'sequential':
                     tasks_io.update(task_output)
                     available_tasks = enqueue_tasks(self.tasks,to_do_tasks,done_tasks)
             elif len(queued_tasks)>0: #Si no hay mas tareas disponibles pero hay tareas ejecutandose, chequear esperar a que alguna termine
-                task_output = wait_task_completion(self.logger,self.tasks,to_do_tasks,done_tasks,available_tasks,queued_tasks,tasks_info,mode=self.backend)
+                task_output = wait_task_completion(self.logger,self.tasks,to_do_tasks,done_tasks,available_tasks,queued_tasks,tasks_info,mode=self.children_backend)
                 tasks_io.update(task_output)
                 available_tasks = enqueue_tasks(self.tasks,to_do_tasks,done_tasks)
-        
+                
         graph_outs = self.config.get('out')
         if graph_outs is not None:
             return tuple([tasks_io[graph_outs[out_name]].load() for out_name in self.get_output_names()])
 
+
     def process(self):
         self.make_dag()
-        self.run_through_graph()
+        return self.run_through_graph()
+
+    def __getstate__(self):
+        #Problems for serializing lazy graphs as logger is unpickleable
+        self.__dict__['logger'] = None
+        return self.__dict__
                 

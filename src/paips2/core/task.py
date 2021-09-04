@@ -24,6 +24,7 @@ class Task:
         self.export_path = self.global_flags.get('experiment_path',self.global_flags.get('experiment_name'))
         self.do_export = self.config.get('export',self.global_flags.get('export',True))
         self.is_lazy = self.config.get('lazy',False)
+        self.backend = self.config.get('backend',None)
 
         self._check_parameters()
         self._make_hash_config()
@@ -157,6 +158,7 @@ class Task:
                               ) for k,v in outs.items()}
         if self.do_export:
             self.export(outs)
+        
         return outs
 
     def search_cache(self,task_hash,output_names):
