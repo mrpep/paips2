@@ -22,8 +22,8 @@ tasks:
     value_name: caption
   LogmelspectrogramExtractor:
     class: Graph
+    children_backend: sequential
     lazy: True
-    in_memory: True
     cache: False
     in:
       filename: null
@@ -48,8 +48,8 @@ tasks:
         in_memory: True
   TextPreprocessor:
     class: Graph
+    children_backend: sequential
     lazy: True
-    in_memory: True
     cache: False
     in:
       text: null
