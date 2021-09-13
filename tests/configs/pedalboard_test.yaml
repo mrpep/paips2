@@ -1,0 +1,23 @@
+task_modules:
+- paips2.tasks
+tasks:
+  ReadExample:
+    class: ReadAudio
+    in: /home/lpepino/sample_vocals.wav
+  Effects:
+    class: Pedalboard
+    in: ReadExample->out
+    pedals:
+    - Compressor:
+        threshold_db: -50
+        ratio: 25
+    - Gain:
+        gain_db: 30
+    - Chorus: {}
+    - LadderFilter:
+        mode: HPF12
+        cutoff_hz: 900
+    - Phaser: {}
+    - Reverb:
+        room_size: 0.25
+        
