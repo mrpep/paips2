@@ -5,6 +5,7 @@ from paips2.utils import sankey_plot
 from pathlib import Path
 from .settings import *
 from kahnfigh import Config
+import copy
 
 class Graph(Task):
     def __init__(self, *args, **kwargs):
@@ -71,4 +72,13 @@ class Graph(Task):
     def process(self):
         self.make_dag()
         return self.run_through_graph()
+
+    def reset(self,config=None):
+        super().reset(config)
+        if config is None:
+            config = self.original_config
+        if hasattr(self,'tasks'):
+            for t_name,t in self.tasks.items():
+                t.reset(Config(config['tasks'][t_name]))
+
                 
