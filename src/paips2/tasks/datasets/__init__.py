@@ -1,1 +1,2 @@
 from .clotho import ClothoReader
+from .audios_from_directory import AudioDatasetFromDirectory

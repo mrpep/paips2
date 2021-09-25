@@ -17,6 +17,9 @@ class GraphModule(Task):
         graph_config = self.config.get('graph')
         if isinstance(graph_config,str):
             graph_config = Config(graph_config)
+        else:
+            from IPython import embed
+            embed()
         graph_name = list(graph_config.keys())[0]
         graph_config = graph_config[graph_name]
         graph_task = Graph(graph_config,graph_name,self.logger,self.global_flags)
@@ -85,11 +88,3 @@ class MapGraph(Task):
             workers = [ray.remote(worker_map(self,w_data)).remote() for w_data in workers_data]
             workers_out = ray.get(workers)
             return tuple([[o for w in workers_out for o in w[i]] for i in range(len(workers_out[0]))])
-
-        #ins = {k: TaskIO(v,self._hash_config['in'][k],name=k,storage_device='memory') for k,v in self.config['in'].items()}
-
-        
-        
-        
-        
-        #return tuple([outs['{}{}{}'.format(graph_name,symbols['membership'],k)].load() for k in out_names])

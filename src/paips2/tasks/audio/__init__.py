@@ -11,6 +11,12 @@ class ReadAudio(Task):
     
     def process(self):
         x,fs = sf.read(self.config['in'])
+        fixed_size = self.config.get('fixed_size')
+        if fixed_size is not None:
+            if len(x) < fixed_size:
+                x = np.pad(x,(0,fixed_size - len(x)))
+            else:
+                x = x[:fixed_size]
         return x
 
 class Pedalboard(Task):

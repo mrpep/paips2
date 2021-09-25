@@ -2,6 +2,7 @@ from paips2.core import Task, TaskIO
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import copy
 tqdm.pandas()
 
 class DataframeApply(Task):
@@ -33,12 +34,15 @@ class DataframeApply(Task):
         else:
             def apply_graph_df(row):
                 outs = []
+                processing_task.reset()
                 for k,v in column_in.items():
                     processing_task.config['in'][k] = TaskIO(row[v],'0')
                 return processing_task.run_through_graph()
 
-            dataframe[[column_out[col] for col in output_names]] = dataframe.progress_apply(apply_graph_df,axis=1,result_type='expand')
-        
+            if self.config.get('log',True):
+                dataframe[[column_out[col] for col in output_names]] = dataframe.progress_apply(apply_graph_df,axis=1,result_type='expand')
+            else:
+                dataframe[[column_out[col] for col in output_names]] = dataframe.apply(apply_graph_df,axis=1,result_type='expand')
         return dataframe
 
 class DataframeFilterByColumn(Task):
@@ -66,3 +70,9 @@ class DataframeMelt(Task):
         else:
             columns = self.config.get('columns')
         return df.melt(columns,var_name=self.config.get('var_name'),value_name=self.config.get('value_name'))
+
+class ColumnToNumpy(Task):
+    def get_valid_parameters(self):
+        return ['in','column'], []
+    def process(self):
+        return np.stack(self.config['in'][self.config['column']])
