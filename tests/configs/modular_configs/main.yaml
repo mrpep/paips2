@@ -1,0 +1,6 @@
+global:
+  var1: 32
+  var2: 42
+TaskA:
+  config: !yaml configs/modular_configs/include_me.yaml
+  a_magic_number: !var var1

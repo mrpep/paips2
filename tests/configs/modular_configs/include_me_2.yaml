@@ -1,0 +1,4 @@
+TaskB:
+  class: just_another_task
+  parameters:
+    hello: 42

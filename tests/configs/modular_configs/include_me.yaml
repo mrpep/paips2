@@ -1,0 +1,12 @@
+global:
+  var3: 656
+  var4: 666
+foo: 5
+bar: 7
+properties:
+  blabla: hello
+  goodbye: 35
+  more_properties:
+    lalala: 2
+    lala: 7
+    var2: !var var2
