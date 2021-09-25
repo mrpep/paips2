@@ -5,7 +5,11 @@ from paips2.utils import format_logger, init_backend, shutdown_backend, add_argu
 from paips2.core import Graph
 from kahnfigh import Config
 
+import warnings
+import numpy as np
+
 def main():
+    warnings.simplefilter(action='ignore', category=FutureWarning)
     argparser = argparse.ArgumentParser(description='Run pipeline from configs')
     add_arguments(argparser)
     args = vars(argparser.parse_args())

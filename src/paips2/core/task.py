@@ -29,6 +29,11 @@ class Task:
         self._check_parameters()
         self._make_hash_config()
 
+    def reset(self, config=None):
+        if config is None:
+            config = self.original_config
+        self.config = copy.deepcopy(config)
+
     def _check_parameters(self):
         required_params, optional_params = self.get_valid_parameters()
         required_params += common_required_params
@@ -122,7 +127,10 @@ class Task:
         pass
     
     def run(self):
-        output_names = self.get_output_names()
+        if self.is_lazy:
+            output_names = ['out']
+        else:
+            output_names = self.get_output_names()
         task_hash = self.get_hash()
         if self.logger is not None:
             self.logger.debug('Task hash: {}'.format(task_hash),enqueue=True)
