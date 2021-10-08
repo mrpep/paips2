@@ -187,8 +187,8 @@ class Task:
             glob_keys = self._hash_config.find_path('*',mode='contains',action=lambda x: fnmatch.filter(list(data.keys()),x) if symbols['membership'] in x else x)
         
         for k,v in data.items():
-            if not self.in_memory:
-                paths = self._hash_config.find_path(k,action=lambda x: v.hash)
+            #if not self.in_memory:
+            paths = self._hash_config.find_path(k,action=lambda x: v.hash)
             #if len(paths) > 0:
             self.config.find_path(k,action=lambda x: v.load())
 
