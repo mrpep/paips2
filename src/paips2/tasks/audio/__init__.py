@@ -12,6 +12,8 @@ class ReadAudio(Task):
     def process(self):
         x,fs = sf.read(self.config['in'])
         fixed_size = self.config.get('fixed_size')
+        if isinstance(fixed_size,list):
+            fixed_size = fixed_size[0]
         if fixed_size is not None:
             if len(x) < fixed_size:
                 x = np.pad(x,(0,fixed_size - len(x)))
