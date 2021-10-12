@@ -6,3 +6,4 @@ from .graphs import *
 from .h5 import *
 from .ml import *
 from .text import *
+from .numpy import *

@@ -39,6 +39,8 @@ class DataframeApply(Task):
                     processing_task.config['in'][k] = TaskIO(row[v],'0')
                 return processing_task.run_through_graph()
 
+            if isinstance(dataframe,pd.core.series.Series):
+                dataframe = pd.DataFrame(dataframe).T
             if self.config.get('log',True):
                 dataframe[[column_out[col] for col in output_names]] = dataframe.progress_apply(apply_graph_df,axis=1,result_type='expand')
             else:
