@@ -12,4 +12,4 @@ class TFTrainer(Task):
         model.compile(loss=self.config['loss'],
                       optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001,clipnorm=1.0),
                       metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
-        model.fit(self.config['data'],validation_data=self.config.get('validation_data'))
+        model.fit(self.config['data'],validation_data=self.config.get('validation_data'),epochs=self.config.get('epochs',1))
