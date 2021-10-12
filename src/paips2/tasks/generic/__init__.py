@@ -17,7 +17,7 @@ class PythonFunction(Task):
         func_name = self.config.get('function_name')
         func_args = self.config.get('function_args',[])
         func_kwargs = self.config.get('function_kwargs',{})
-
+        
         spec = importlib.util.spec_from_file_location(Path(file_path).stem, file_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)

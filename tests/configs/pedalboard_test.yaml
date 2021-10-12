@@ -4,20 +4,30 @@ tasks:
   ReadExample:
     class: ReadAudio
     in: /home/lpepino/sample_vocals.wav
+  RandomParameters:
+    class: RandomSampler
+    sample:
+      compressor_threshold: uniform(-30,-10)
+      compressor_ratio: uniform(1,30)
+      gain: uniform(0,15)
+      cutoff_f: uniform(200,2000)
+      room_size: uniform(0.1,1.0)
+      drive_db: uniform(0,30)
   Effects:
     class: Pedalboard
     in: ReadExample->out
+    probability: 1.0
     pedals:
     - Compressor:
-        threshold_db: -50
-        ratio: 25
+        threshold_db: RandomParameters->compressor_threshold
+        ratio: RandomParameters->compressor_ratio
     - Gain:
-        gain_db: 30
-    - Chorus: {}
+        gain_db: RandomParameters->gain
+    - Distortion:
+        drive_db: RandomParameters->drive_db
     - LadderFilter:
         mode: HPF12
-        cutoff_hz: 900
-    - Phaser: {}
+        cutoff_hz: RandomParameters->cutoff_f
     - Reverb:
-        room_size: 0.25
+        room_size: RandomParameters->room_size
         
