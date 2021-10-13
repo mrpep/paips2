@@ -3,6 +3,8 @@ import numpy as np
 import copy
 from torch.utils.data import Dataset, DataLoader
 
+import time
+
 class TorchDataset(Dataset):
     def __init__(self, data = None, data_processing_task = None,x_names=None,y_names=None):
         self._data, self.data_processing_task = data, data_processing_task
@@ -10,6 +12,8 @@ class TorchDataset(Dataset):
             self.data_processing_task.in_memory = True
             self.data_processing_task.logger = None
             self.original_data_processing_config = copy.deepcopy(self.data_processing_task.config)
+            self.data_processing_task.plot_graph = False
+            self.data_processing_task.calculate_hashes = False
         self.x_names, self.y_names = x_names, y_names
         if not isinstance(self.x_names,list):
             self.x_names = [self.x_names]  
@@ -19,7 +23,7 @@ class TorchDataset(Dataset):
     def __getitem__(self,step):
         batch_data = self._data.iloc[step]
         if self.data_processing_task is not None:
-            ins = {'data': TaskIO(batch_data,'0',name='batch_data',storage_device='memory')}
+            ins = {k: TaskIO(batch_data[k],'0',name='batch_{}'.format(k),storage_device='memory') for k in self.data_processing_task.config['in'].keys()}
             self.data_processing_task.reset(copy.deepcopy(self.original_data_processing_config))
             self.data_processing_task.config['in'].update(ins)
             outs = self.data_processing_task.run()

@@ -78,3 +78,10 @@ class ColumnToNumpy(Task):
         return ['in','column'], []
     def process(self):
         return np.stack(self.config['in'][self.config['column']])
+
+class DataframeColumnSelect(Task):
+    def get_valid_parameters(self):
+        return ['in','column'],[]
+
+    def process(self):
+        return self.config['in'][self.config['column']]

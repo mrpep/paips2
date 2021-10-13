@@ -6,12 +6,14 @@ from pathlib import Path
 from .settings import *
 from kahnfigh import Config
 import copy
+import time
 
 class Graph(Task):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.backend = self.config.get('backend',self.global_flags.get('backend','ray'))
         self.children_backend = self.config.get('children_backend',self.backend)
+        self.plot_graph = self.config.get('plot_graph',True)
 
     def get_valid_parameters(self):
         return ['tasks'], ['task_modules','out','children_backend']
@@ -36,10 +38,13 @@ class Graph(Task):
 
     def make_dag(self):
         self.tasks = gather_tasks(self.config, self.logger, self.global_flags) #Arma el diccionario de tareas a partir del archivo de configuracion
-        if self.is_main:
-            sankey_plot(self.tasks, Path(self.export_path,'main_graph.html')) #Plotea el grafo y lo guarda en un html
-        else:
-            sankey_plot(self.tasks, Path(self.export_path,self.name,'graph.html'))
+        for k,v in self.tasks.items():
+            v.calculate_hashes = self.calculate_hashes
+        if self.plot_graph:
+            if self.is_main:
+                sankey_plot(self.tasks, Path(self.export_path,'main_graph.html')) #Plotea el grafo y lo guarda en un html
+            else:
+                sankey_plot(self.tasks, Path(self.export_path,self.name,'graph.html'))
 
     def run_through_graph(self):
         to_do_tasks = list(self.tasks.keys())

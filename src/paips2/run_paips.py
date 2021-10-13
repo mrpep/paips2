@@ -33,7 +33,7 @@ def main():
     logger.info('Running experiment {}. Outputs will be saved in {}'.format(args['experiment_name'], args['experiment_path']))
     #config = Config(args['config_path'])
     config = Config(args['config_path'],
-              special_tags=[IgnorableTag('!{}'.format(tag)) for tag in ignorable_tags])
+              yaml_tags=[IgnorableTag('!{}'.format(tag)) for tag in ignorable_tags])
     config['class'] = 'Graph'
     config = process_config(config)
     

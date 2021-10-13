@@ -6,6 +6,7 @@ import fnmatch
 import time
 import os
 from pathlib import Path
+from ruamel.yaml import YAML
 
 class Task:
     def __init__(self, config, name=None, logger=None, global_flags={}, main=False):
@@ -25,9 +26,12 @@ class Task:
         self.do_export = self.config.get('export',self.global_flags.get('export',True))
         self.is_lazy = self.config.get('lazy',False)
         self.backend = self.config.get('backend',None)
+        self.calculate_hashes = True
 
         self._check_parameters()
         self._make_hash_config()
+
+        self._dependency_paths = {k: v for k,v in self.config.to_shallow().items() if isinstance(v,str) and symbols['membership'] in v}
 
     def reset(self, config=None):
         if config is None:
@@ -118,6 +122,12 @@ class Task:
             if param in self._hash_config:
                 self._hash_config.pop(param)
 
+        yaml_processor = YAML()
+        for k,v in self.config.to_shallow().items():
+            if isinstance(v,str) and v.startswith('!no-cache'):
+                self._hash_config.pop(k)
+                self.config[k] = yaml_processor.load(v.split('!no-cache ')[-1])
+
     def on_cache(self, cache_files, task_hash, output_names):
         #This can be overriden
         return tuple(c for out_name,c in zip(output_names,cache_files))
@@ -166,7 +176,6 @@ class Task:
                               ) for k,v in outs.items()}
         if self.do_export:
             self.export(outs)
-        
         return outs
 
     def search_cache(self,task_hash,output_names):
@@ -181,21 +190,11 @@ class Task:
         return process_out
 
     def send_dependency_data(self,data):
-        #If glob patterns, replace by dependencies names
-        glob_keys = self.config.find_path('*',mode='contains',action=lambda x: fnmatch.filter(list(data.keys()),x) if symbols['membership'] in x else x)
-        if not self.in_memory:
-            glob_keys = self._hash_config.find_path('*',mode='contains',action=lambda x: fnmatch.filter(list(data.keys()),x) if symbols['membership'] in x else x)
-        
-        for k,v in data.items():
-            #if not self.in_memory:
-            paths = self._hash_config.find_path(k,action=lambda x: v.hash)
-            #if len(paths) > 0:
-            self.config.find_path(k,action=lambda x: v.load())
-
-            #else:
-            #    if self.simulate and not k.startswith('self'):
-            #        k_ = k.split('->')[0]+'->'
-            #        paths = self._hash_dict.find_path(k_,action=lambda x: v.hash,mode='startswith')
+        for k,v in self._dependency_paths.items():
+            if v in data:
+                self.config[k] = data[v].load()
+                if self.calculate_hashes:
+                    self._hash_config[k] = data[v].hash
 
     def __getstate__(self):
         #Problems for serializing lazy tasks as logger is unpickleable

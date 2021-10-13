@@ -35,14 +35,14 @@ def include_config(conf,special_tags=None,global_config=None):
     for p in include_paths:    
         p_parent = '/'.join(p.split('/')[:-1]) if '/' in p else None
         for c in conf[p]:
-            imported_config = Config(c['config'],special_tags=special_tags)
+            imported_config = Config(c['config'],yaml_tags=special_tags)
             p_config, global_config = process_tags(imported_config,global_config)
             if p_parent is not None:
-                p_config, global_config = process_tags(Config(conf[p_parent],special_tags=special_tags),global_config)
+                p_config, global_config = process_tags(Config(conf[p_parent],yaml_tags=special_tags),global_config)
                 new_config = merge_configs([p_config,imported_config])
                 conf[p_parent] = new_config
             else:
-                p_config, global_config = process_tags(Config(conf,special_tags=special_tags),global_config)
+                p_config, global_config = process_tags(Config(conf,yaml_tags=special_tags),global_config)
                 conf = merge_configs([p_config,imported_config])
         conf.pop(p)
     return conf, global_config
