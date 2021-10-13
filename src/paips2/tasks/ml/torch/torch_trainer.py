@@ -9,6 +9,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 import copy
 import torchinfo
+from pathlib import Path
 
 class TorchTrainer(Task):
     def get_valid_parameters(self):
@@ -29,6 +30,19 @@ class TorchTrainer(Task):
         else:
             logger = True
 
-        trainer = pl.Trainer(**self.config['training_parameters'],logger=logger)
+        callbacks = []
+        available_callbacks = get_classes_in_module(pl.callbacks)
+        for k,v in self.config.get('callbacks',{}).items():
+            if k == 'ModelCheckpoint':
+                if 'dirpath' not in v:
+                    v['dirpath'] = str(Path(self.cache_path,self.get_hash(),'checkpoints').absolute())
+                if 'filename' not in v:
+                    if 'monitor' in v:
+                        v['filename'] = '{epoch}-{' + v['monitor'] + ':.2f}'
+                    else:
+                        v['filename'] = '{epoch}'
+            callbacks.append(available_callbacks[k](**v))
+
+        trainer = pl.Trainer(**self.config['training_parameters'],logger=logger,callbacks=callbacks)
         trainer.fit(model,self.config['data'],self.config['validation_data'])
     
