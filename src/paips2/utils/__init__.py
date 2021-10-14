@@ -35,4 +35,4 @@ def add_arguments(argparser):
     argparser.add_argument('--simulate', dest='simulate',
                            help='Just build graph without executing it', action='store_true', default=False)
     argparser.add_argument('--backend', dest='backend',
-                           type=str, help='[ray][none]', default='ray')
+                           type=str, help='[sequential][ray]', default='sequential')
