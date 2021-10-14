@@ -7,7 +7,7 @@ from pathlib import Path
 
 class ReadAudio(Task):
     def get_valid_parameters(self):
-        return ['in'], ['target_fs', 'mono', 'start', 'end', 'fixed_size']
+        return ['in'], ['target_fs', 'mono', 'start', 'end', 'fixed_size','dtype']
     
     def process(self):
         x,fs = sf.read(self.config['in'])
@@ -19,7 +19,9 @@ class ReadAudio(Task):
                 x = np.pad(x,(0,fixed_size - len(x)))
             else:
                 x = x[:fixed_size]
-        return x
+        dtype = self.config.get('dtype','float32')
+
+        return x.astype(dtype)
 
 class Pedalboard(Task):
     def get_valid_parameters(self):
