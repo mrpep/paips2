@@ -3,7 +3,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
-from paips2.utils import get_classes_in_module
+from paips2.utils import get_classes_in_module, get_modules
 from paips2.core import Task
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -13,13 +13,13 @@ from pathlib import Path
 
 class TorchTrainer(Task):
     def get_valid_parameters(self):
-        return ['data', 'loss', 'optimizer', 'model', 'training_parameters'], ['validation_data','metrics','callbacks','wandb_run','wandb_project']
+        return ['data', 'loss', 'optimizer', 'model', 'training_parameters'], ['validation_data','metrics','callbacks','wandb_run','wandb_project','callback_modules','loss_modules']
     
     def process(self):
         model = self.config['model']
         torchinfo.summary(model)
         model.set_optimizer(self.config['optimizer'])
-        model.set_loss(self.config['loss'])
+        model.set_loss(self.config['loss'], modules=self.config.get('loss_modules',['torch.nn']))
         model.set_metrics(self.config['metrics'])
 
         if self.config.get('wandb_run') and self.config.get('wandb_project'):
@@ -31,7 +31,12 @@ class TorchTrainer(Task):
             logger = True
 
         callbacks = []
-        available_callbacks = get_classes_in_module(pl.callbacks)
+        callback_modules = get_modules(self.config.get('callback_modules',['pytorch_lightning.callbacks']))
+
+        available_callbacks = {}
+        for m in callback_modules:
+            available_callbacks.update(get_classes_in_module(m))
+        #available_callbacks = get_classes_in_module(pl.callbacks)
         for k,v in self.config.get('callbacks',{}).items():
             if k == 'ModelCheckpoint':
                 if 'dirpath' not in v:
