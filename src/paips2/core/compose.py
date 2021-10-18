@@ -1,6 +1,19 @@
 from kahnfigh import Config
 from kahnfigh.utils import IgnorableTag, merge_configs
 from paips2.core.settings import symbols
+from ruamel.yaml import YAML
+
+def apply_mods(conf,mods):
+    yaml = YAML()
+    if isinstance(mods,str):
+        mods = mods.split('&')
+    for mod in mods:
+        mod_key = mod.split('=')[0]
+        mod_value = mod.split('=')[1]
+        if '!' in mod_value:
+            conf[mod_key] = mod_value
+        else:
+            conf[mod_key] = yaml.load(mod_value)
 
 def insert_yaml(x, special_tags=None, global_config={}):
     yaml_path = x.split('!yaml ')[-1]
@@ -30,7 +43,7 @@ def process_tags(conf, global_config):
                                     global_config = global_config)
     return conf, global_config
 
-def include_config(conf,special_tags=None,global_config=None):
+def include_config(conf,special_tags=None,global_config=None,mods=None):
     include_paths = conf.find_keys(symbols['include'])
     for p in include_paths:    
         p_parent = '/'.join(p.split('/')[:-1]) if '/' in p else None
@@ -44,12 +57,14 @@ def include_config(conf,special_tags=None,global_config=None):
             else:
                 p_config, global_config = process_tags(Config(conf,yaml_tags=special_tags),global_config)
                 conf = merge_configs([p_config,imported_config])
+            #apply_mods(conf,mods)
         conf.pop(p)
     return conf, global_config
             
-def process_config(conf):
+def process_config(conf,mods=None):
+    apply_mods(conf,mods)
     conf, global_conf = process_tags(conf,conf.get('vars',{}))
     conf, global_conf = include_config(conf,
                                        special_tags=[IgnorableTag('!{}'.format(tag)) for tag in ignorable_tags],
-                                       global_config=global_conf)
+                                       global_config=global_conf,mods=mods)
     return conf
