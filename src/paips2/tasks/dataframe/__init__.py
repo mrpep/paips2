@@ -85,3 +85,55 @@ class DataframeColumnSelect(Task):
 
     def process(self):
         return self.config['in'][self.config['column']]
+
+class DataframeRandomColumn(Task):
+    def get_valid_parameters(self):
+        return ['in', 'column', 'proportions'], []
+
+    def process(self):
+        data = self.config['in']
+        labels = list(self.config['proportions'].keys())
+        sampled_idxs = []
+        for l in labels[:-1]:
+            idxs = data.sample(frac=self.config['proportions'][l]).index
+            sampled_idxs.extend(idxs)
+            data.loc[idxs,self.config['column']] = l
+        data.loc[~data.index.isin(sampled_idxs), self.config['column']] = labels[-1]
+
+        return data
+
+class DataframeFramer(Task):
+    def get_valid_parameters(self):
+        return ['in','frame_size'], ['hop_size','duration_column']
+    
+    def process(self):
+        data = self.config['in']
+        if self.config['frame_size'] is None:
+            return data
+        else:
+            if isinstance(self.config['frame_size'],list):
+                frame_size = self.config['frame_size'][0]
+            else:
+                frame_size = self.config['frame_size']
+            if self.config.get('hop_size') is None:
+                hop_size = frame_size
+            else:
+                if isinstance(self.config['hop_size'],list):
+                    hop_size = self.config['hop_size'][0]
+                else:
+                    hop_size = self.config['hop_size']
+            duration_column = self.config.get('duration_column', 'frames')
+
+            framed_rows = []
+            for logid,row in tqdm(data.iterrows()):
+                max_frames = row[duration_column]
+                starts = np.arange(0,max_frames-frame_size,hop_size)
+                ends = starts + frame_size
+                row_dict = row.to_dict()
+                row_dict['start'], row_dict['end'], row_dict['parent_id'] = starts, ends, logid
+                df_i = pd.DataFrame(row_dict)
+                framed_rows.append(df_i)
+            framed_df = pd.concat(framed_rows)
+            framed_df = framed_df.reset_index()
+            framed_df = framed_df.rename(columns={'index': 'frame_index'})
+        return framed_df

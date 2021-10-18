@@ -35,7 +35,7 @@ def main():
     config = Config(args['config_path'],
               yaml_tags=[IgnorableTag('!{}'.format(tag)) for tag in ignorable_tags])
     config['class'] = 'Graph'
-    config = process_config(config)
+    config = process_config(config, mods=args['mods'])
     
     args['task_modules'] = config.get('task_modules',[])
 

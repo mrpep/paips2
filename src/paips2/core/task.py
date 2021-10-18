@@ -192,9 +192,14 @@ class Task:
     def send_dependency_data(self,data):
         for k,v in self._dependency_paths.items():
             if v in data:
-                self.config[k] = data[v].load()
-                if self.calculate_hashes:
-                    self._hash_config[k] = data[v].hash
+                if data[v] is not None:
+                    self.config[k] = data[v].load()
+                    if self.calculate_hashes:
+                        self._hash_config[k] = data[v].hash
+                else:
+                    self.config[k] = data[v]
+                    if self.calculate_hashes:
+                        self._hash_config[k] = data[v]
 
     def __getstate__(self):
         #Problems for serializing lazy tasks as logger is unpickleable

@@ -10,7 +10,7 @@ class ReadAudio(Task):
         return ['in'], ['target_fs', 'mono', 'start', 'end', 'fixed_size','dtype']
     
     def process(self):
-        x,fs = sf.read(self.config['in'])
+        x,fs = sf.read(self.config['in'],start=self.config.get('start',0),stop=self.config.get('end'))
         fixed_size = self.config.get('fixed_size')
         if isinstance(fixed_size,list):
             fixed_size = fixed_size[0]
@@ -20,7 +20,6 @@ class ReadAudio(Task):
             else:
                 x = x[:fixed_size]
         dtype = self.config.get('dtype','float32')
-
         return x.astype(dtype)
 
 class Pedalboard(Task):
