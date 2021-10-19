@@ -15,6 +15,9 @@ class TorchTrainer(Task):
     def get_valid_parameters(self):
         return ['data', 'loss', 'optimizer', 'model', 'training_parameters'], ['validation_data','metrics','callbacks','wandb_run','wandb_project','callback_modules','loss_modules']
     
+    def get_output_names(self):
+        return ['best_weights', 'last_model_weights', 'last_optimizer_state']
+
     def process(self):
         model = self.config['model']
         torchinfo.summary(model)
@@ -50,4 +53,12 @@ class TorchTrainer(Task):
 
         trainer = pl.Trainer(**self.config['training_parameters'],logger=logger,callbacks=callbacks)
         trainer.fit(model,self.config['data'],self.config['validation_data'])
-    
+
+        model_ckpt_cb = [c for c in trainer.callbacks if c.__class__.__name__ == 'ModelCheckpoint'][0]
+        outs = []
+        if model_ckpt_cb.best_model_path != '':
+            outs.append(torch.load(model_ckpt_cb.best_model_path))
+        outs.append(trainer.model.state_dict())
+        outs.append(trainer.model.optimizers().state_dict())
+
+        return tuple(outs)    
