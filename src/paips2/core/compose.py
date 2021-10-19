@@ -62,7 +62,8 @@ def include_config(conf,special_tags=None,global_config=None,mods=None):
     return conf, global_config
             
 def process_config(conf,mods=None):
-    apply_mods(conf,mods)
+    if mods is not None:
+        apply_mods(conf,mods)
     conf, global_conf = process_tags(conf,conf.get('vars',{}))
     conf, global_conf = include_config(conf,
                                        special_tags=[IgnorableTag('!{}'.format(tag)) for tag in ignorable_tags],
