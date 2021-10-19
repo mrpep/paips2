@@ -4,6 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 import copy
 tqdm.pandas()
+from paips2.core.settings import common_optional_params, common_required_params
 
 class DataframeApply(Task):
     def get_valid_parameters(self):
@@ -73,6 +74,19 @@ class DataframeMelt(Task):
             columns = self.config.get('columns')
         return df.melt(columns,var_name=self.config.get('var_name'),value_name=self.config.get('value_name'))
 
+class DataframeMerge(Task):
+    def get_valid_parameters(self):
+        return ['left','right'], ['how','on','left_on','right_on','left_index','right_index']
+
+    def process(self):
+        config = copy.deepcopy(self.config)
+        left = config.pop('left')
+        right = config.pop('right')
+        for p in common_required_params + common_optional_params:
+            if p in config:
+                config.pop(p)
+        return pd.merge(left,right,**config)
+
 class ColumnToNumpy(Task):
     def get_valid_parameters(self):
         return ['in','column'], []
@@ -137,3 +151,19 @@ class DataframeFramer(Task):
             framed_df = framed_df.reset_index()
             framed_df = framed_df.rename(columns={'index': 'frame_index'})
         return framed_df
+
+class DataframeRenamer(Task):
+    def get_valid_parameters(self):
+        return ['in', 'what', 'mapping'], []
+
+    def process(self):
+        what = self.config['what']
+        mapping = self.config['mapping']
+        data = self.config['in']
+        if what == 'column':
+            return data.rename(columns=mapping)
+        elif what == 'index':
+            return data.rename(index=mapping)
+        else:
+            data[what] = data[what].apply(lambda x: mapping[x])
+            return data
