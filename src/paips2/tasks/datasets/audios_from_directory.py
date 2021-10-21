@@ -60,5 +60,6 @@ class AudioDatasetFromDirectory(Task):
             df_metadata = df_metadata.set_index(split_col_in)
             for k,v in split_list.items():
                 df_metadata.loc[v, split_col_out] = k
+            df_metadata[split_col_in] = df_metadata.index
 
         return df_metadata

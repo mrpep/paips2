@@ -4,6 +4,7 @@ from pathlib import Path
 import shlex
 import subprocess
 import os
+import numpy as np
 
 class PythonFunction(Task):
     def get_valid_parameters(self):
@@ -56,5 +57,20 @@ class ShScript(Task):
 
         return normal.stdout, normal.stderr
 
+class Len(Task):
+    def get_valid_parameters(self):
+        return ['in'], ['padding_idx']
+    
+    def process(self):
+        data = self.config['in']
+        padding_idx = self.config.get('padding_idx')
+        if padding_idx is None:
+            return len(data)
+        else:
+            is_padded = (np.array(data) == padding_idx).sum() > 0
+            if is_padded:
+                return np.argmax(np.array(data) == padding_idx)
+            else:
+                return len(data)
 
 
