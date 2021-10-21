@@ -7,10 +7,18 @@ from pathlib import Path
 
 class ReadAudio(Task):
     def get_valid_parameters(self):
-        return ['in'], ['target_fs', 'mono', 'start', 'end', 'fixed_size','dtype']
+        return ['in'], ['target_fs', 'mono', 'start', 'end', 'fixed_size','dtype','max_size']
     
     def process(self):
-        x,fs = sf.read(self.config['in'],start=self.config.get('start',0),stop=self.config.get('end'))
+        if self.config.get('max_size') is not None:
+            audio_frames = sf.info(self.config['in']).frames
+            if audio_frames > self.config['max_size'] + self.config.get('start',0):
+                stop = self.config.get('start',0)+self.config['max_size']
+            else:
+                stop = self.config.get('end')
+        else:
+            stop = self.config.get('end')
+        x,fs = sf.read(self.config['in'],start=self.config.get('start',0),stop=stop)
         fixed_size = self.config.get('fixed_size')
         if isinstance(fixed_size,list):
             fixed_size = fixed_size[0]
