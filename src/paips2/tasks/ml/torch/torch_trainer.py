@@ -40,18 +40,21 @@ class TorchTrainer(Task):
         for m in callback_modules:
             available_callbacks.update(get_classes_in_module(m))
         #available_callbacks = get_classes_in_module(pl.callbacks)
-        for k,v in self.config.get('callbacks',{}).items():
-            if k == 'ModelCheckpoint':
-                if 'dirpath' not in v:
-                    v['dirpath'] = str(Path(self.cache_path,self.get_hash(),'checkpoints').absolute())
-                if 'filename' not in v:
-                    if 'monitor' in v:
-                        v['filename'] = '{epoch}-{' + v['monitor'] + ':.2f}'
-                    else:
-                        v['filename'] = '{epoch}'
-            callbacks.append(available_callbacks[k](**v))
+        callbacks_config = self.config.get('callbacks',{})
+        if isinstance(callbacks_config,dict):
+            for k,v in self.config.get('callbacks',{}).items():
+                if k == 'ModelCheckpoint':
+                    if 'dirpath' not in v:
+                        v['dirpath'] = str(Path(self.cache_path,self.get_hash(),'checkpoints').absolute())
+                    if 'filename' not in v:
+                        if 'monitor' in v:
+                            v['filename'] = '{epoch}-{' + v['monitor'] + ':.2f}'
+                        else:
+                            v['filename'] = '{epoch}'
+                callbacks.append(available_callbacks[k](**v))
 
         trainer = pl.Trainer(**self.config['training_parameters'],logger=logger,callbacks=callbacks)
+
         trainer.fit(model,self.config['data'],self.config['validation_data'])
 
         model_ckpt_cb = [c for c in trainer.callbacks if c.__class__.__name__ == 'ModelCheckpoint'][0]
