@@ -9,7 +9,7 @@ class TextStandarizer(Task):
         return ['text','tokens']
 
     def get_valid_parameters(self):
-        return ['in'], ['lowercase','remove_punctuation','remove_stop_words','language']
+        return ['in'], ['lowercase','remove_punctuation','remove_stop_words','language','stem']
 
     def process(self):
         text = self.config['in']
