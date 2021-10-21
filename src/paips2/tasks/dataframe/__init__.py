@@ -3,8 +3,11 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import copy
+
+from paips2.core import Graph
 tqdm.pandas()
 from paips2.core.settings import common_optional_params, common_required_params
+from kahnfigh import Config
 
 class DataframeApply(Task):
     def get_valid_parameters(self):
@@ -15,6 +18,12 @@ class DataframeApply(Task):
         column_in = self.config['column_in']
         column_out = self.config['column_out']
         processing_task = self.config['processing_task']
+        if isinstance(processing_task,str):
+            graph_config = Config(processing_task)
+            graph_name = list(graph_config.keys())[0]
+            graph_config = graph_config[graph_name]
+            processing_task = Graph(graph_config,graph_name,self.logger,self.global_flags)
+            processing_task.calculate_hashes = False
         processing_task.logger = None
         processing_task.make_dag()
         output_names = processing_task.get_output_names()
@@ -24,6 +33,7 @@ class DataframeApply(Task):
             f = h5py.File(h5file,'w')
             def apply_graph_h5(row):
                 outs = []
+                processing_task.reset(copy.deepcopy(processing_task.config))
                 for k,v in column_in.items():
                     processing_task.config['in'][k] = TaskIO(row[v],'0')
                 for out_name, out in zip(output_names,processing_task.run_through_graph()):
@@ -35,7 +45,7 @@ class DataframeApply(Task):
         else:
             def apply_graph_df(row):
                 outs = []
-                processing_task.reset()
+                processing_task.reset(copy.deepcopy(processing_task.config))
                 for k,v in column_in.items():
                     processing_task.config['in'][k] = TaskIO(row[v],'0')
                 return processing_task.run_through_graph()
@@ -92,6 +102,13 @@ class ColumnToNumpy(Task):
         return ['in','column'], []
     def process(self):
         return np.stack(self.config['in'][self.config['column']])
+
+class DataframeConcatenate(Task):
+    def get_valid_parameters(self):
+        return ['in'], ['axis']
+
+    def process(self):
+        return pd.concat(self.config['in'], axis=self.config.get('axis',0))
 
 class DataframeColumnSelect(Task):
     def get_valid_parameters(self):
