@@ -56,6 +56,7 @@ class Task:
 
     def export(self,outs):
         self.on_export(outs)
+
         for k,v in outs.items():
             if v.storage_device == 'disk':
                 if isinstance(v.data, str):
@@ -149,9 +150,11 @@ class Task:
             extra_msg = '' if len(cache_results) == 1 else ' and {} more files'.format(len(cache_results) - 1)
             process_out = self.on_cache(cache_results,task_hash,output_names)
             storage_device = 'disk'
+            cached = True
             if self.logger is not None:
                 self.logger.success('Cached task: {} from {}{}'.format(self.name, cache_results[0], extra_msg),enqueue=True)
         else: #Run task if not possible
+            cached = False
             if self.logger is not None:
                 self.logger.info('Running task: {}'.format(self.name),enqueue=True)
             task_start = time.time()
@@ -167,7 +170,8 @@ class Task:
                 self.logger.success('Finished task: {} in {:.2f} s.'.format(self.name,execution_time),enqueue=True)
 
         outs = self.format_outputs(process_out, output_names, task_hash, storage_device=storage_device)
-        if (not self.in_memory) and (cache_results is None): #Save outputs if not caching
+
+        if (not self.in_memory) and (not cached): #Save outputs if not caching
             outs = {k: v.save(self.cache_path,
                               export_path=self.export_path,
                               compression_level=self.config.get('cache_compression', self.global_flags.get('cache_compression',0)),
