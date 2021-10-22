@@ -9,7 +9,7 @@ from paips2.utils.files import read_list
 
 class AudioDatasetFromDirectory(Task):
     def get_valid_parameters(self):
-        return ['dataset_path'], ['max_rows', 're', 'audio_extensions', 'split_lists','split_column_in','split_column_out']
+        return ['dataset_path'], ['max_rows', 're', 'audio_extensions', 'split_lists','split_column_in','split_column_out','constant_column']
 
     def process(self):
         #Gather all audios in directory:
@@ -61,5 +61,10 @@ class AudioDatasetFromDirectory(Task):
             for k,v in split_list.items():
                 df_metadata.loc[v, split_col_out] = k
             df_metadata[split_col_in] = df_metadata.index
+
+        const_col = self.config.get('constant_column')
+        if const_col:
+            for k,v in const_col.items():
+                df_metadata[k] = v
 
         return df_metadata
