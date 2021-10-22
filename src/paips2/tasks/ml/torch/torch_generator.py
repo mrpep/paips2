@@ -12,6 +12,8 @@ class TorchDataset(Dataset):
         if self.data_processing_task is not None:
             self.data_processing_task.in_memory = True
             self.data_processing_task.logger = None
+            self.data_processing_task.do_export=False
+            self.data_processing_task.cacheable=False
             self.original_data_processing_config = copy.deepcopy(self.data_processing_task.config)
             if data_processing_mods is not None:
                 apply_mods(self.original_data_processing_config, data_processing_mods)
