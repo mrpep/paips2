@@ -199,7 +199,7 @@ class Task:
                 if data[v] is not None:
                     self.config[k] = data[v].load()
                     if self.calculate_hashes:
-                        self._hash_config[k] = data[v].hash
+                        self._hash_config[k] = '{}_{}'.format(data[v].hash,data[v].name)
                 else:
                     self.config[k] = data[v]
                     if self.calculate_hashes:
