@@ -13,7 +13,7 @@ from pathlib import Path
 
 class TorchTrainer(Task):
     def get_valid_parameters(self):
-        return ['data', 'loss', 'optimizer', 'model', 'training_parameters'], ['validation_data','metrics','callbacks','wandb_run','wandb_project','callback_modules','loss_modules']
+        return ['data', 'loss', 'optimizer', 'model', 'training_parameters'], ['validation_data','metrics','callbacks','wandb_run','wandb_project','callback_modules','loss_modules','metric_modules','scheduler']
     
     def get_output_names(self):
         return ['best_weights', 'last_model_weights', 'last_optimizer_state']
@@ -21,9 +21,9 @@ class TorchTrainer(Task):
     def process(self):
         model = self.config['model']
         torchinfo.summary(model)
-        model.set_optimizer(self.config['optimizer'])
+        model.set_optimizer(self.config['optimizer'], self.config.get('scheduler'))
         model.set_loss(self.config['loss'], modules=self.config.get('loss_modules',['torch.nn']))
-        model.set_metrics(self.config['metrics'])
+        model.set_metrics(self.config['metrics'], modules = self.config.get('metric_modules',['torchmetrics']))
 
         if self.config.get('wandb_run') and self.config.get('wandb_project'):
             logger = WandbLogger(name = self.config['wandb_run'], 
@@ -54,7 +54,6 @@ class TorchTrainer(Task):
                 callbacks.append(available_callbacks[k](**v))
 
         trainer = pl.Trainer(**self.config['training_parameters'],logger=logger,callbacks=callbacks)
-
         trainer.fit(model,self.config['data'],self.config['validation_data'])
 
         model_ckpt_cb = [c for c in trainer.callbacks if c.__class__.__name__ == 'ModelCheckpoint'][0]
