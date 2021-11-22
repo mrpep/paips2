@@ -65,6 +65,15 @@ def include_config(conf,special_tags=None,global_config=None,default_config=None
                 imported_config.pop('vars')
             if 'default_vars' in imported_config:
                 imported_config.pop('default_vars')
+            tasks_to_keep = c.get('tasks',[])
+            if tasks_to_keep is not None:
+                if not isinstance(tasks_to_keep,list):
+                    tasks_to_keep = [tasks_to_keep]
+                tasks_config = {}
+                for t_name, t_config in imported_config['tasks'].items():
+                    if t_name in tasks_to_keep:
+                        tasks_config[t_name] = t_config
+                imported_config['tasks'] = tasks_config
 
             if p_parent is not None:
                 p_config, global_config, default_config = process_tags(Config(conf[p_parent],yaml_tags=special_tags),global_config,default_config)
