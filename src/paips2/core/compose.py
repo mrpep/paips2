@@ -4,6 +4,8 @@ from paips2.core.settings import symbols
 from ruamel.yaml import YAML
 
 def apply_mods(conf,mods):
+    #For each mod, apply it to the config. mods can be a list of strings or a string with each mode separated with a &
+    #Each mod is PATH_TO_KEY=VALUE
     yaml = YAML()
     if isinstance(mods,str):
         mods = mods.split('&')
@@ -15,18 +17,23 @@ def apply_mods(conf,mods):
         else:
             conf[mod_key] = yaml.load(mod_value)
 
-def insert_yaml(x, special_tags=None, global_config={}):
+def insert_yaml(x, special_tags=None, global_config={}, default_config={}):
+    #Processing of !yaml tag, which replaces that value with the corresponding yaml config.
     yaml_path = x.split('!yaml ')[-1]
     inserted_config = Config(yaml_path, special_tags=special_tags)
     global_config.update(inserted_config.get('vars', {}))
+    default_config.update(inserted_config.get('default_vars', {}))
     if 'vars' in inserted_config:
         inserted_config.pop('vars')
-    return process_tags(inserted_config, global_config)
+    if 'default_vars' in inserted_config:
+        inserted_config.pop('default_vars')
 
-def identity(x, special_tags=None, global_config={}):
+    return process_tags(inserted_config, global_config,default_config)
+
+def identity(x, special_tags=None, global_config={},default_config={}):
     return x
 
-def replace_var(x, special_tags=None, global_config={}):
+def replace_var(x, special_tags=None, global_config={},default_config={}):
     var_name = x.split('!var ')[-1]
     return global_config.get(var_name, x)
 
@@ -34,38 +41,62 @@ ignorable_tags = {'yaml': insert_yaml,
                   'no-cache': identity,
                   'var': replace_var}
 
-def process_tags(conf, global_config):
+def process_tags(conf, global_config, default_config):
     for tag_name, tag_processor in ignorable_tags.items():
         tag_paths = conf.find_path('!{}'.format(tag_name), mode='startswith')
         for p in tag_paths:
             conf[p] = tag_processor(conf[p], 
                                     special_tags=[IgnorableTag('!{}'.format(tag)) for tag in ignorable_tags],
-                                    global_config = global_config)
-    return conf, global_config
+                                    global_config = global_config,
+                                    default_config = default_config)
+    return conf, global_config, default_config
 
-def include_config(conf,special_tags=None,global_config=None,mods=None):
+def include_config(conf,special_tags=None,global_config=None,default_config=None,mods=None):
     include_paths = conf.find_keys(symbols['include'])
     for p in include_paths:    
         p_parent = '/'.join(p.split('/')[:-1]) if '/' in p else None
         for c in conf[p]:
             imported_config = Config(c['config'],yaml_tags=special_tags)
-            p_config, global_config = process_tags(imported_config,global_config)
+            imported_config, global_config, default_config = process_tags(imported_config,global_config,default_config)
+            
+            global_config.update(imported_config.get('vars',{}))
+            default_config.update(imported_config.get('default_vars',{}))
+            if 'vars' in imported_config:
+                imported_config.pop('vars')
+            if 'default_vars' in imported_config:
+                imported_config.pop('default_vars')
+
             if p_parent is not None:
-                p_config, global_config = process_tags(Config(conf[p_parent],yaml_tags=special_tags),global_config)
+                p_config, global_config, default_config = process_tags(Config(conf[p_parent],yaml_tags=special_tags),global_config,default_config)
                 new_config = merge_configs([p_config,imported_config])
                 conf[p_parent] = new_config
             else:
-                p_config, global_config = process_tags(Config(conf,yaml_tags=special_tags),global_config)
+                p_config, global_config, default_config = process_tags(Config(conf,yaml_tags=special_tags),global_config,default_config)
                 conf = merge_configs([p_config,imported_config])
+
             #apply_mods(conf,mods)
         conf.pop(p)
-    return conf, global_config
+    return conf, global_config,default_config
             
-def process_config(conf,mods=None):
+def process_config(conf,mods=None,logger=None):
     if mods is not None:
         apply_mods(conf,mods)
-    conf, global_conf = process_tags(conf,conf.get('vars',{}))
-    conf, global_conf = include_config(conf,
+    conf, global_conf, default_conf = process_tags(conf,conf.get('vars',{}),conf.get('default_vars',{}))
+    conf, global_conf, default_conf = include_config(conf,
                                        special_tags=[IgnorableTag('!{}'.format(tag)) for tag in ignorable_tags],
-                                       global_config=global_conf,mods=mods)
+                                       global_config=global_conf,
+                                       default_config=default_conf,
+                                       mods=mods)
+    #Replace unreplaced vars with default config:
+    tag_paths = conf.find_path('!var', mode='startswith')
+    for p in tag_paths:
+        var_name = conf[p].split('!var ')[-1]
+        if var_name in global_conf:
+            conf[p] = global_conf[var_name]
+        elif var_name in default_conf:
+            conf[p] = default_conf[var_name]
+        else:
+            if logger is not None:
+                logger.warning('Variable {} not found in vars or default vars. None value will be adopted'.format(var_name))
+            conf[p] = None
     return conf
