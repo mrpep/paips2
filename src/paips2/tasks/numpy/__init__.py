@@ -36,3 +36,9 @@ class Pad(Task):
             unpadded_len = self.config['target_size']
         return y, unpadded_len
     
+class NPConcatenate(Task):
+    def get_valid_parameters(self):
+        return ['in'], ['axis']
+
+    def process(self):
+        return np.concatenate(self.config['in'],axis=self.config.get('axis',0))
