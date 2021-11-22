@@ -39,7 +39,7 @@ class GraphModule(Task):
 
 class MapGraph(Task):
     def get_valid_parameters(self):
-        return ['graph','in'], ['n_workers', 'chunk_size']
+        return ['graph','map_in'], ['n_workers', 'chunk_size','in']
 
     def get_output_names(self):
         return self.get_child_graph()[-1].get_output_names()
@@ -55,20 +55,30 @@ class MapGraph(Task):
 
     def map_process(self, data, graph_name, graph_task):
         out_names = graph_task.get_output_names()
-        data_len = max([len(v) for k,v in data.items()])
-        graph_ins = [{k: TaskIO(v[i], self._hash_config['in'][k]) for k,v in data.items()} for i in range(data_len)]
+        map_ins = self.config['map_in']
+        map_lens = [len(v) for k,v in map_ins.items()]
+        #Check that all lens are equal:
+        if not all([l == map_lens[0] for l in map_lens]):
+            raise ValueError('Map inputs must have equal length')
+            
+        graph_ins = [{k: TaskIO(v[i], self._hash_config['map_in'][k] + '_{}'.format(i)) for k,v in map_ins.items()} for i in range(map_lens[0])]
+        for k, v in self.config.get('in',{}).items():
+            for g_in in graph_ins:
+                g_in[k] = TaskIO(copy.deepcopy(v), self._hash_config['in'][k])
+
         map_outs = []
         config_in = copy.deepcopy(graph_task.config)
-        for d in tqdm(graph_ins):
+        for i,d in enumerate(tqdm(graph_ins)):
             graph_task.config = copy.deepcopy(config_in)
             graph_task.config['in'].update(d)
+            graph_task.export_path = self.export_path + '/{}/{}'.format(self.name,i)
             out_i = graph_task.run()
             out_i = [out_i['{}{}{}'.format(graph_name,symbols['membership'],k)].load() for k in out_names]
             map_outs.append(out_i)
 
         return tuple([[m[i] for m in map_outs] for i,k in enumerate(out_names)])
 
-    def process(self):       
+    def process(self):    
         graph_name, graph_task = self.get_child_graph()
         graph_task.in_memory = True
         n_workers = self.config.get('n_workers',1)
