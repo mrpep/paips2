@@ -6,6 +6,7 @@ import glob
 from pathlib import Path
 from tqdm import tqdm
 from paips2.utils.files import read_list
+import pymediainfo
 
 class AudioDatasetFromDirectory(Task):
     def get_valid_parameters(self):
@@ -23,10 +24,25 @@ class AudioDatasetFromDirectory(Task):
         metadatas = []
         for f in tqdm(available_audios):
             #Extract audio info:
-            audio_metadata = sf.info(str(f.absolute())).__dict__
-            audio_metadata['absolute_path'] = audio_metadata.pop('name')
-            audio_metadata.pop('extra_info')
-            audio_metadata.pop('verbose')
+            if f.suffix == '.wav':
+                audio_metadata = sf.info(str(f.absolute())).__dict__
+                audio_metadata['absolute_path'] = audio_metadata.pop('name')
+                audio_metadata.pop('extra_info')
+                audio_metadata.pop('verbose')
+            else:
+                info = pymediainfo.MediaInfo.parse(f)
+                audio_metadata = info.to_data()['tracks']
+                for t in audio_metadata:
+                    if t['track_type'] == 'Audio':
+                        audio_metadata = t
+                        break
+                audio_metadata['absolute_path'] = str(f.absolute())
+                audio_metadata['frames'] = audio_metadata.pop('samples_count')
+                for k,v in audio_metadata.items():
+                    if isinstance(v,list) and len(v) == 1:
+                        audio_metadata[k] = v[0]
+                    elif isinstance(v,list) and len(v) > 1:
+                        audio_metadata[k] = ','.join(v)
             audio_metadata['relative_path'] = str(f.relative_to(dataset_path))
             audio_metadata['name'] = str(f.stem)
             #Match regular expressions:
@@ -66,5 +82,8 @@ class AudioDatasetFromDirectory(Task):
         if const_col:
             for k,v in const_col.items():
                 df_metadata[k] = v
+
+        if self.config.get('max_rows') is not None:
+            df_metadata = df_metadata.sample(n=self.config.get('max_rows'))
 
         return df_metadata
