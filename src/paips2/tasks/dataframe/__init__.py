@@ -58,7 +58,30 @@ class DataframeApply(Task):
                 dataframe[[column_out[col] for col in output_names]] = dataframe.apply(apply_graph_df,axis=1,result_type='expand')
         return dataframe
 
+class DataframeFilter(Task):
+    def get_valid_parameters(self):
+        return ['in', 'column'], ['column_value','column_exclude_value']
+
+    def process(self):
+        df = self.config.get('in')
+        column_in = self.config.get('column')
+        column_value = self.config.get('column_value')
+        column_exclude_value = self.config.get('column_exclude_value')
+
+        if column_value is not None:
+            if isinstance(column_value,str):
+                column_value = [column_value]
+            df = df.loc[df[column_in].isin(column_value)]
+        
+        if column_exclude_value is not None:
+            if isinstance(column_exclude_value,str):
+                column_exclude_value = [column_exclude_value]
+            df = df.loc[~df[column_in].isin(column_exclude_value)]
+
+        return df
+
 class DataframeFilterByColumn(Task):
+    #Returns dataframes with unique values in the column
     def get_valid_parameters(self):
         return ['in', 'column'], []
     
@@ -73,6 +96,7 @@ class DataframeFilterByColumn(Task):
         return tuple(dfs)
 
 class DataframeMelt(Task):
+    #Performs a pandas.melt on a dataframe
     def get_valid_parameters(self):
         return ['in','var_name','value_name'], ['columns','exclude_columns']
 
@@ -96,6 +120,17 @@ class DataframeMerge(Task):
             if p in config:
                 config.pop(p)
         return pd.merge(left,right,**config)
+
+class DataframeSumCols(Task):
+    def get_valid_parameters(self):
+        return ['in','summands','output_col'], []
+
+    def process(self):
+        df = self.config.get('in')
+        df[self.config['output_col']] = df[self.config['summands']].sum(axis=1)
+        cols = [col for col in self.config['summands'] if col != self.config['output_col']]
+        df = df.drop(cols,axis=1)
+        return df
 
 class ColumnToNumpy(Task):
     def get_valid_parameters(self):
@@ -146,6 +181,7 @@ class DataframeFramer(Task):
                 frame_size = self.config['frame_size'][0]
             else:
                 frame_size = self.config['frame_size']
+            frame_size = int(frame_size)
             if self.config.get('hop_size') is None:
                 hop_size = frame_size
             else:
@@ -157,12 +193,15 @@ class DataframeFramer(Task):
 
             framed_rows = []
             for logid,row in tqdm(data.iterrows()):
-                max_frames = row[duration_column]
+                max_frames = int(row[duration_column])
                 starts = np.arange(0,max_frames-frame_size,hop_size)
                 ends = starts + frame_size
                 row_dict = row.to_dict()
                 row_dict['start'], row_dict['end'], row_dict['parent_id'] = starts, ends, logid
-                df_i = pd.DataFrame(row_dict)
+                try:
+                    df_i = pd.DataFrame(row_dict)
+                except:
+                    from IPython import embed; embed()
                 framed_rows.append(df_i)
             framed_df = pd.concat(framed_rows)
             framed_df = framed_df.reset_index()
@@ -177,10 +216,13 @@ class DataframeRenamer(Task):
         what = self.config['what']
         mapping = self.config['mapping']
         data = self.config['in']
+        if isinstance(mapping, list):
+        #This is because integer keys are not allowed in dicts and interpreted as list positions
+            mapping = {i:mapping[i] for i in range(len(mapping)) if mapping[i] is not None}
         if what == 'column':
             return data.rename(columns=mapping)
         elif what == 'index':
             return data.rename(index=mapping)
         else:
-            data[what] = data[what].apply(lambda x: mapping[x])
+            data[what] = data[what].apply(lambda x: mapping[x] if x in mapping else x)
             return data
