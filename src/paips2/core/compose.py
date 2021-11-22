@@ -41,6 +41,32 @@ ignorable_tags = {'yaml': insert_yaml,
                   'no-cache': identity,
                   'var': replace_var}
 
+def replace_var_dollars(conf, global_config, default_config):
+    import re
+    shallow_conf = conf.to_shallow()
+    for k,v in shallow_conf.items():
+        if isinstance(k,str):
+            k_occurrence = re.findall('\$(.*?)\$',k)
+        else:
+            k_occurrence = []
+        if isinstance(v,str):
+            v_occurrence = re.findall('\$(.*?)\$',v)
+        else:
+            v_occurrence = []
+        drop_k = False
+        if len(k_occurrence) > 0:
+            for k_occ in k_occurrence:
+                new_k = k.replace('$'+k_occ+'$',global_config.get(k_occ,default_config.get(k_occ,'$'+k_occ+'$')))
+            drop_k = True
+        else:
+            new_k = k
+        if len(v_occurrence) > 0:
+            for v_occ in v_occurrence:
+                v = v.replace('$'+v_occ+'$',global_config.get(v_occ,default_config.get(v_occ,'$'+v_occ+'$')))
+        conf[new_k] = v
+        if drop_k:
+            conf.pop(k)
+
 def process_tags(conf, global_config, default_config):
     for tag_name, tag_processor in ignorable_tags.items():
         tag_paths = conf.find_path('!{}'.format(tag_name), mode='startswith')
@@ -49,6 +75,7 @@ def process_tags(conf, global_config, default_config):
                                     special_tags=[IgnorableTag('!{}'.format(tag)) for tag in ignorable_tags],
                                     global_config = global_config,
                                     default_config = default_config)
+    replace_var_dollars(conf,global_config,default_config)
     return conf, global_config, default_config
 
 def include_config(conf,special_tags=None,global_config=None,default_config=None,mods=None):
@@ -85,6 +112,7 @@ def include_config(conf,special_tags=None,global_config=None,default_config=None
 
             #apply_mods(conf,mods)
         conf.pop(p)
+
     return conf, global_config,default_config
             
 def process_config(conf,mods=None,logger=None):
@@ -109,3 +137,4 @@ def process_config(conf,mods=None,logger=None):
                 logger.warning('Variable {} not found in vars or default vars. None value will be adopted'.format(var_name))
             conf[p] = None
     return conf
+
