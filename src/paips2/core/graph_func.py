@@ -58,7 +58,7 @@ def run_next_task(logger, tasks, to_do_tasks, done_tasks, available_tasks, queue
     to_do_tasks.remove(task_name)
     available_tasks.remove(task_name)
     return out, task.backend
-    
+
 def wait_task_completion(logger, tasks, to_do_tasks, done_tasks, available_tasks, queued_tasks, tasks_info, mode='ray'):
     if mode == 'ray':
         import ray

@@ -40,6 +40,8 @@ class Graph(Task):
         self.tasks = gather_tasks(self.config, self.logger, self.global_flags) #Arma el diccionario de tareas a partir del archivo de configuracion
         for k,v in self.tasks.items():
             v.calculate_hashes = self.calculate_hashes
+            if not self.is_main:
+                v.export_path = self.export_path + '/{}'.format(self.name)
         if self.plot_graph:
             if self.is_main:
                 sankey_plot(self.tasks, Path(self.export_path,'main_graph.html')) #Plotea el grafo y lo guarda en un html
@@ -69,7 +71,6 @@ class Graph(Task):
                 task_output = wait_task_completion(self.logger,self.tasks,to_do_tasks,done_tasks,available_tasks,queued_tasks,tasks_info,mode=self.children_backend)
                 tasks_io.update(task_output)
                 available_tasks = enqueue_tasks(self.tasks,to_do_tasks,done_tasks)
-
         graph_outs = self.config.get('out')
         if graph_outs is not None:
             return tuple([tasks_io[graph_outs[out_name]].load() for out_name in self.get_output_names()])
