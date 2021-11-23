@@ -47,11 +47,15 @@ class Task:
         if len(missing_params)>0:
             if self.logger is not None:
                 self.logger.critical('Missing required parameter{} in task {}: {}'.format('s' if len(missing_params)>1 else '', self.name, missing_params))
+            else:
+                print('Missing required parameter{} in task {}: {}'.format('s' if len(missing_params)>1 else '', self.name, missing_params))
             raise SystemExit(-1)
         unrecognized_params = [param for param in self.config if param not in required_params+optional_params]
         if len(unrecognized_params)>0:
             if self.logger is not None:
                 self.logger.critical('Unrecognized parameter{} in task {}: {}'.format('s' if len(unrecognized_params)>1 else '', self.name, unrecognized_params))
+            else:
+                print('Unrecognized parameter{} in task {}: {}'.format('s' if len(unrecognized_params)>1 else '', self.name, unrecognized_params))
             raise SystemExit(-1)
 
     def export(self,outs):
