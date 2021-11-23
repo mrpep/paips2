@@ -13,13 +13,17 @@ class GraphModule(Task):
     def get_output_names(self):
         return self.get_child_graph()[-1].get_output_names()
 
+    def get_dependencies(self):
+        dependencies = []
+        if 'in' in self.config:
+            for k,v in Config(self.config['in']).to_shallow().items():
+                if isinstance(v,str) and symbols['membership'] in v:
+                    dependencies.append(v.split(symbols['membership'])[0])         
+        return dependencies
+
     def get_child_graph(self):
         graph_config = self.config.get('graph')
-        if isinstance(graph_config,str):
-            graph_config = Config(graph_config)
-        else:
-            from IPython import embed
-            embed()
+        graph_config = Config(graph_config)
         graph_name = list(graph_config.keys())[0]
         graph_config = graph_config[graph_name]
         graph_task = Graph(graph_config,graph_name,self.logger,self.global_flags)
@@ -52,6 +56,18 @@ class MapGraph(Task):
         graph_config = graph_config[graph_name]
         graph_task = Graph(graph_config,graph_name,None,self.global_flags)
         return graph_name, graph_task
+
+    def get_dependencies(self):
+        dependencies = []
+        if 'in' in self.config:
+            for k,v in Config(self.config['in']).to_shallow().items():
+                if isinstance(v,str) and symbols['membership'] in v:
+                    dependencies.append(v.split(symbols['membership'])[0])
+        if 'map_in' in self.config:
+            for k,v in Config(self.config['map_in']).to_shallow().items():
+                if isinstance(v,str) and symbols['membership'] in v:
+                    dependencies.append(v.split(symbols['membership'])[0])            
+        return dependencies
 
     def map_process(self, data, graph_name, graph_task):
         out_names = graph_task.get_output_names()
