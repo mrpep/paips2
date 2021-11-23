@@ -20,7 +20,7 @@ def apply_mods(conf,mods):
 def insert_yaml(x, special_tags=None, global_config={}, default_config={}):
     #Processing of !yaml tag, which replaces that value with the corresponding yaml config.
     yaml_path = x.split('!yaml ')[-1]
-    inserted_config = Config(yaml_path, special_tags=special_tags)
+    inserted_config = Config(yaml_path, yaml_tags=special_tags)
     global_config.update(inserted_config.get('vars', {}))
     default_config.update(inserted_config.get('default_vars', {}))
     if 'vars' in inserted_config:
@@ -28,7 +28,8 @@ def insert_yaml(x, special_tags=None, global_config={}, default_config={}):
     if 'default_vars' in inserted_config:
         inserted_config.pop('default_vars')
 
-    return process_tags(inserted_config, global_config,default_config)
+    conf, global_config, default_config = process_tags(inserted_config, global_config, default_config)
+    return conf
 
 def identity(x, special_tags=None, global_config={},default_config={}):
     return x
@@ -62,7 +63,10 @@ def replace_var_dollars(conf, global_config, default_config):
             new_k = k
         if len(v_occurrence) > 0:
             for v_occ in v_occurrence:
-                v = v.replace('$'+v_occ+'$',global_config.get(v_occ,default_config.get(v_occ,'$'+v_occ+'$')))
+                if v.endswith('$') and v.startswith('$') and v.count('$') == 2:
+                    v = global_config.get(v_occ,default_config.get(v_occ,'$'+v_occ+'$'))
+                else:
+                    v = v.replace('$'+v_occ+'$',global_config.get(v_occ,default_config.get(v_occ,'$'+v_occ+'$')))
         conf[new_k] = v
         if drop_k:
             conf.pop(k)
@@ -92,7 +96,7 @@ def include_config(conf,special_tags=None,global_config=None,default_config=None
                 imported_config.pop('vars')
             if 'default_vars' in imported_config:
                 imported_config.pop('default_vars')
-            tasks_to_keep = c.get('tasks',[])
+            tasks_to_keep = c.get('tasks')
             if tasks_to_keep is not None:
                 if not isinstance(tasks_to_keep,list):
                     tasks_to_keep = [tasks_to_keep]
