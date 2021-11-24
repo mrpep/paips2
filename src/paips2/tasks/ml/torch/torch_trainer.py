@@ -7,18 +7,20 @@ from paips2.utils import get_classes_in_module, get_modules
 from paips2.core import Task
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning import seed_everything
 import copy
 import torchinfo
 from pathlib import Path
 
 class TorchTrainer(Task):
     def get_valid_parameters(self):
-        return ['data', 'loss', 'optimizer', 'model', 'training_parameters'], ['validation_data','metrics','callbacks','wandb_run','wandb_project','callback_modules','loss_modules','metric_modules','scheduler']
+        return ['data', 'loss', 'optimizer', 'model', 'training_parameters'], ['validation_data','metrics','callbacks','wandb_run','wandb_project','wandb_group','callback_modules','loss_modules','metric_modules','scheduler','seed']
     
     def get_output_names(self):
         return ['best_weights', 'last_model_weights', 'last_optimizer_state']
 
     def process(self):
+        seed_everything(self.config.get('seed',42))
         model = self.config['model']
         torchinfo.summary(model)
         model.set_optimizer(self.config['optimizer'], self.config.get('scheduler'))
@@ -28,7 +30,9 @@ class TorchTrainer(Task):
         if self.config.get('wandb_run') and self.config.get('wandb_project'):
             logger = WandbLogger(name = self.config['wandb_run'], 
                         project=self.config['wandb_project'],
-                        log_model=False)
+                        log_model=False,
+                        group=self.config.get('wandb_group'),
+                        reinit=True)
             logger.watch(model, log="all")
         else:
             logger = True
@@ -55,6 +59,8 @@ class TorchTrainer(Task):
 
         trainer = pl.Trainer(**self.config['training_parameters'],logger=logger,callbacks=callbacks)
         trainer.fit(model,self.config['data'],self.config['validation_data'])
+        trainer.logger.experiment.finish()
+        trainer.logger.close()
 
         model_ckpt_cb = [c for c in trainer.callbacks if c.__class__.__name__ == 'ModelCheckpoint'][0]
         outs = []
