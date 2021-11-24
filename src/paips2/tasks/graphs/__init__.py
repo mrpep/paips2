@@ -33,6 +33,7 @@ class GraphModule(Task):
         graph_name, graph_task = self.get_child_graph()
         ins = {k: TaskIO(v,self._hash_config['in'][k],name=k,storage_device='memory') for k,v in self.config['in'].items()}
         graph_task.config['in'].update(ins)
+        graph_task.export_path = self.export_path + '/{}'.format(self.name)
         graph_task.in_memory = True
         outs = graph_task.run()
         out_names = graph_task.get_output_names()
@@ -77,7 +78,17 @@ class MapGraph(Task):
         if not all([l == map_lens[0] for l in map_lens]):
             raise ValueError('Map inputs must have equal length')
             
-        graph_ins = [{k: TaskIO(v[i], self._hash_config['map_in'][k] + '_{}'.format(i)) for k,v in map_ins.items()} for i in range(map_lens[0])]
+        graph_ins = []
+        for i in range(map_lens[0]):
+            g_in = {}
+            for k,v in map_ins.items():
+                if self._hash_config['map_in'][k] == v:
+                    hash_val = v[i]
+                else:
+                    hash_val = self._hash_config['map_in'][k] + '_{}'.format(i)
+                g_in[k] = TaskIO(v[i], hash_val)
+            graph_ins.append(g_in)
+        #graph_ins = [{k: TaskIO(v[i], self._hash_config['map_in'][k] + '_{}'.format(i)) } for i in range(map_lens[0])]
         for k, v in self.config.get('in',{}).items():
             for g_in in graph_ins:
                 g_in[k] = TaskIO(copy.deepcopy(v), self._hash_config['in'][k])
