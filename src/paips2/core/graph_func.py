@@ -29,6 +29,8 @@ def gather_tasks(config, logger, global_flags):
         if len(task_obj) == 0:
             if logger is not None:
                 logger.critical('{} not recognized as a task'.format(task_class))
+            else:
+                print('{} not recognized as a task'.format(task_class))
             raise SystemExit(-1)
         elif len(task_obj) > 1:
             if logger is not None:

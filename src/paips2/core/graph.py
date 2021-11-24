@@ -11,7 +11,7 @@ import time
 class Graph(Task):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.backend = self.config.get('backend',self.global_flags.get('backend','ray'))
+        self.backend = self.config.get('backend',self.global_flags.get('backend','sequential'))
         self.children_backend = self.config.get('children_backend',self.backend)
         self.plot_graph = self.config.get('plot_graph',True)
 
@@ -40,7 +40,7 @@ class Graph(Task):
         self.tasks = gather_tasks(self.config, self.logger, self.global_flags) #Arma el diccionario de tareas a partir del archivo de configuracion
         for k,v in self.tasks.items():
             v.calculate_hashes = self.calculate_hashes
-            if not self.is_main:
+            if (not self.is_main) and (self.export_path is not None):
                 v.export_path = self.export_path + '/{}'.format(self.name)
         if self.plot_graph:
             if self.is_main:
