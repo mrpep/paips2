@@ -28,15 +28,15 @@ def insert_yaml(x, special_tags=None, global_config={}, default_config={}):
     if 'default_vars' in inserted_config:
         inserted_config.pop('default_vars')
 
-    conf, global_config, default_config = process_tags(inserted_config, global_config, default_config)
-    return conf
+    conf, global_config, default_config = process_config(inserted_config, global_config, default_config)
+    return conf, global_config, default_config
 
 def identity(x, special_tags=None, global_config={},default_config={}):
-    return x
+    return x, global_config, default_config
 
 def replace_var(x, special_tags=None, global_config={},default_config={}):
     var_name = x.split('!var ')[-1]
-    return global_config.get(var_name, x)
+    return global_config.get(var_name, x), global_config, default_config
 
 ignorable_tags = {'yaml': insert_yaml,
                   'no-cache': identity,
@@ -75,10 +75,13 @@ def process_tags(conf, global_config, default_config):
     for tag_name, tag_processor in ignorable_tags.items():
         tag_paths = conf.find_path('!{}'.format(tag_name), mode='startswith')
         for p in tag_paths:
-            conf[p] = tag_processor(conf[p], 
+            conf[p], global_conf, default_conf = tag_processor(conf[p], 
                                     special_tags=[IgnorableTag('!{}'.format(tag)) for tag in ignorable_tags],
                                     global_config = global_config,
                                     default_config = default_config)
+            global_config.update(global_conf)
+            default_config.update(default_conf)
+            
     replace_var_dollars(conf,global_config,default_config)
     return conf, global_config, default_config
 
@@ -88,8 +91,7 @@ def include_config(conf,special_tags=None,global_config=None,default_config=None
         p_parent = '/'.join(p.split('/')[:-1]) if '/' in p else None
         for c in conf[p]:
             imported_config = Config(c['config'],yaml_tags=special_tags)
-            imported_config, global_config, default_config = process_tags(imported_config,global_config,default_config)
-            
+            imported_config, global_config, default_config = process_config(imported_config, global_config, default_config)
             global_config.update(imported_config.get('vars',{}))
             default_config.update(imported_config.get('default_vars',{}))
             if 'vars' in imported_config:
@@ -113,21 +115,26 @@ def include_config(conf,special_tags=None,global_config=None,default_config=None
             else:
                 p_config, global_config, default_config = process_tags(Config(conf,yaml_tags=special_tags),global_config,default_config)
                 conf = merge_configs([p_config,imported_config])
-
-            #apply_mods(conf,mods)
         conf.pop(p)
 
     return conf, global_config,default_config
             
-def process_config(conf,mods=None,logger=None):
+def process_config(conf,global_conf=None,default_conf=None,mods=None,logger=None):
     if mods is not None:
         apply_mods(conf,mods)
-    conf, global_conf, default_conf = process_tags(conf,conf.get('vars',{}),conf.get('default_vars',{}))
+    if global_conf is None:
+        global_conf = conf.get('vars',{})
+    if default_conf is None:
+        default_conf = conf.get('default_vars',{})
+    default_conf.update(conf.get('default_vars',{}))
+    global_conf.update(conf.get('vars',{}))
+    conf, global_conf, default_conf = process_tags(conf,global_conf,default_conf)
     conf, global_conf, default_conf = include_config(conf,
                                        special_tags=[IgnorableTag('!{}'.format(tag)) for tag in ignorable_tags],
                                        global_config=global_conf,
                                        default_config=default_conf,
                                        mods=mods)
+
     #Replace unreplaced vars with default config:
     tag_paths = conf.find_path('!var', mode='startswith')
     for p in tag_paths:
@@ -140,5 +147,6 @@ def process_config(conf,mods=None,logger=None):
             if logger is not None:
                 logger.warning('Variable {} not found in vars or default vars. None value will be adopted'.format(var_name))
             conf[p] = None
-    return conf
+    replace_var_dollars(conf,global_conf,default_conf)
+    return conf, global_conf, default_conf
 
