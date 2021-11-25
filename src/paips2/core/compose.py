@@ -66,7 +66,7 @@ def replace_var_dollars(conf, global_config, default_config):
                 if v.endswith('$') and v.startswith('$') and v.count('$') == 2:
                     v = global_config.get(v_occ,default_config.get(v_occ,'$'+v_occ+'$'))
                 else:
-                    v = v.replace('$'+v_occ+'$',global_config.get(v_occ,default_config.get(v_occ,'$'+v_occ+'$')))
+                    v = v.replace('$'+v_occ+'$',str(global_config.get(v_occ,default_config.get(v_occ,'$'+v_occ+'$'))))
         conf[new_k] = v
         if drop_k:
             conf.pop(k)
