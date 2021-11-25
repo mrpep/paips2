@@ -14,10 +14,10 @@ from pathlib import Path
 
 class TorchTrainer(Task):
     def get_valid_parameters(self):
-        return ['data', 'loss', 'optimizer', 'model', 'training_parameters'], ['validation_data','metrics','callbacks','wandb_run','wandb_project','wandb_group','callback_modules','loss_modules','metric_modules','scheduler','seed']
+        return ['data', 'loss', 'optimizer', 'model', 'training_parameters'], ['validation_data','metrics','callbacks','wandb_run','wandb_project','wandb_group','wandb_config','callback_modules','loss_modules','metric_modules','scheduler','seed']
     
     def get_output_names(self):
-        return ['best_weights', 'last_model_weights', 'last_optimizer_state']
+        return ['best_weights', 'last_model_weights', 'last_optimizer_state', 'checkpoint_path']
 
     def process(self):
         seed_everything(self.config.get('seed',42))
@@ -32,7 +32,8 @@ class TorchTrainer(Task):
                         project=self.config['wandb_project'],
                         log_model=False,
                         group=self.config.get('wandb_group'),
-                        reinit=True)
+                        reinit=True,
+                        config=self.config.get('wandb_config'))
             logger.watch(model, log="all")
         else:
             logger = True
@@ -68,5 +69,6 @@ class TorchTrainer(Task):
             outs.append(torch.load(model_ckpt_cb.best_model_path))
         outs.append(trainer.model.state_dict())
         outs.append(trainer.model.optimizers().state_dict())
+        outs.append(model_ckpt_cb.dirpath)
 
         return tuple(outs)    
