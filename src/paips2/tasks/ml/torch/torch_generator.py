@@ -2,7 +2,7 @@ from paips2.core import Task, TaskIO,settings
 import numpy as np
 import copy
 from torch.utils.data import Dataset, DataLoader
-from paips2.core.compose import apply_mods
+from paips2.core.compose import apply_mods, replace_var_dollars
 
 import time
 
@@ -35,6 +35,7 @@ class TorchDataset(Dataset):
             out_names = self.data_processing_task.get_output_names()
             if not isinstance(out_names, list):
                 out_names = [out_names]
+                
             xs = [outs['{}{}{}'.format(self.data_processing_task.name,settings.symbols['membership'],k)].load() for k in self.x_names]
             ys = [outs['{}{}{}'.format(self.data_processing_task.name,settings.symbols['membership'],k)].load() for k in self.y_names]
             if len(ys) == 1:
@@ -51,9 +52,11 @@ class TorchDataset(Dataset):
 
 class TorchGenerator(Task):
     def get_valid_parameters(self):
-        return ['data'], ['shuffle', 'batch_size', 'data_processing_task','x_names','y_names','num_workers','data_processing_mods']
+        return ['data'], ['shuffle', 'batch_size', 'data_processing_task','x_names','y_names','num_workers','data_processing_mods', 'vars']
 
     def process(self):
+        if 'vars' in self.config:
+            replace_var_dollars(self.config.get('data_processing_task').config, self.config['vars'], self.config['vars'])
         dataset = TorchDataset(self.config['data'],
                                self.config.get('data_processing_task'),
                                self.config.get('data_processing_mods'),
