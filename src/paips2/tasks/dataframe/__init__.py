@@ -143,7 +143,12 @@ class DataframeConcatenate(Task):
         return ['in'], ['axis']
 
     def process(self):
-        return pd.concat(self.config['in'], axis=self.config.get('axis',0))
+        if isinstance(self.config['in'],list) and len(self.config['in']) > 1:
+            return pd.concat(self.config['in'], axis=self.config.get('axis',0))
+        elif isinstance(self.config['in'],list) and len(self.config['in']) == 1:
+            return self.config['in'][0]
+        else:
+            return self.config['in']
 
 class DataframeColumnSelect(Task):
     def get_valid_parameters(self):
@@ -226,3 +231,35 @@ class DataframeRenamer(Task):
         else:
             data[what] = data[what].apply(lambda x: mapping[x] if x in mapping else x)
             return data
+
+class DataframeSampleNFromUniqueValues(Task):
+    def get_valid_parameters(self):
+        return ['in', 'n', 'column'], []
+
+    def process(self):
+        data = self.config['in']
+        n = self.config['n']
+        column = self.config['column']
+        unique_values = data[column].unique()
+        sampled_dfs = []
+        for v in unique_values:
+            sampled_dfs.append(data[data[column] == v].sample(n=n))
+        
+        return pd.concat(sampled_dfs)
+
+class NanImputer(Task):
+    def get_valid_parameters(self):
+        return ['in','column'], ['mode','distribution']
+
+    def process(self):
+        data = self.config['in']
+        column = self.config['column']
+        mode = self.config.get('mode','mean')
+        distribution = self.config.get('distribution','uniform(0,1)')
+        if mode == 'random':
+            distribution_type = distribution.split('(')[0]
+            distribution_params = [float(x) for x in distribution.split('(')[1].split(')')[0].split(',')]
+            if distribution_type == 'uniformint':
+                data[column] = data[column].apply(lambda x: int(np.random.uniform(*distribution_params)) if np.isnan(x) else x)
+                data[column] = data[column].astype(int)
+        return data
