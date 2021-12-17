@@ -21,6 +21,7 @@ class CalculateMetrics(Task):
                                              'average_precision_score',
                                              'precision_recall_curve'])
         results = {}
+        targets = np.argmax(targets,axis=-1)
         if backend_library == 'sklearn':
             import sklearn.metrics as skm
             decisions = np.argmax(preds, axis=-1)
