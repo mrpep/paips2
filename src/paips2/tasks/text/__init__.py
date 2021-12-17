@@ -35,7 +35,7 @@ class WordOneHotVector(Task):
         return ['in'], ['special_tokens', 'input_type', 'column_in', 'column_out', 'max_seq_len']
 
     def get_output_names(self):
-        return ['out','word_to_index','index_to_word']
+        return ['out','word_to_index','index_to_word','max_seq_len','vocab_size']
 
     def process(self):
         text = self.config.get('in')
@@ -53,7 +53,8 @@ class WordOneHotVector(Task):
             unique_words = np.unique(all_words)
             vocab = {w: i+len(special_tokens) for i,w in enumerate(unique_words)}
             vocab.update(special_tokens)
-
+            if (max_seq_len is None) and ('[PAD]' in special_tokens):
+                max_seq_len = max(text[column_in].apply(lambda x: len(x))) + len([s for s in special_tokens.keys() if s not in ['[PAD]']])
             def vectorize_fn(x):
                 v = []
                 if '[SOS]' in special_tokens:
@@ -74,4 +75,4 @@ class WordOneHotVector(Task):
             text[column_out] = text[column_in].apply(vectorize_fn)
             index_to_word = {v:k for k,v in vocab.items()}
 
-        return text, vocab, index_to_word
+        return text, vocab, index_to_word, max_seq_len, len(index_to_word)
