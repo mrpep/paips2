@@ -66,7 +66,11 @@ def replace_var_dollars(conf, global_config, default_config):
                 if v.endswith('$') and v.startswith('$') and v.count('$') == 2:
                     v = global_config.get(v_occ,default_config.get(v_occ,'$'+v_occ+'$'))
                 else:
-                    v = v.replace('$'+v_occ+'$',str(global_config.get(v_occ,default_config.get(v_occ,'$'+v_occ+'$'))))
+                    replacement = global_config.get(v_occ,default_config.get(v_occ,'$'+v_occ+'$'))
+                    if isinstance(replacement,list):
+                        v = [v.replace('$'+v_occ+'$',v_i) for v_i in replacement]
+                    else:
+                        v = v.replace('$'+v_occ+'$',str(replacement))
         conf[new_k] = v
         if drop_k:
             conf.pop(k)
@@ -107,7 +111,15 @@ def include_config(conf,special_tags=None,global_config=None,default_config=None
                     if t_name in tasks_to_keep:
                         tasks_config[t_name] = t_config
                 imported_config['tasks'] = tasks_config
-
+            rename_tasks = c.get('rename_tasks')
+            if rename_tasks is not None:
+                tasks_config = {}
+                for t_name, t_config in imported_config['tasks'].items():
+                    if t_name in rename_tasks:
+                        tasks_config[rename_tasks[t_name]] = t_config
+                    else:
+                        tasks_config[t_name] = t_config
+                imported_config['tasks'] = tasks_config
             if p_parent is not None:
                 p_config, global_config, default_config = process_tags(Config(conf[p_parent],yaml_tags=special_tags),global_config,default_config)
                 new_config = merge_configs([p_config,imported_config])
