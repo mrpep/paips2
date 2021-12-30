@@ -36,3 +36,5 @@ def add_arguments(argparser):
                            help='Just build graph without executing it', action='store_true', default=False)
     argparser.add_argument('--backend', dest='backend',
                            type=str, help='[sequential][ray]', default='sequential')
+    argparser.add_argument('--explore', dest='explore',
+                           type=str, help='Path to exploration python file', default=None)
