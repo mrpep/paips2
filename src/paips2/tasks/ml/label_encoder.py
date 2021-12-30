@@ -45,7 +45,7 @@ class LabelEncoder(Task):
                 else:
                     raise Exception('Unknown type: {}'.format(type(x)))
 
-            data[column_out] = data[column_in].apply(encode)
+            data[column_out] = data[column_in].apply(encode, convert_dtype=False)
         return data, label_to_code_map, code_to_label_map, len(label_to_code_map)
 
 class OneHotVector(Task):
