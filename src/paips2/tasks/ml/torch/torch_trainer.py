@@ -17,7 +17,7 @@ class TorchTrainer(Task):
         return ['data', 'loss', 'optimizer', 'model', 'training_parameters'], ['validation_data','metrics','callbacks','wandb_run','wandb_project','wandb_group','wandb_config','callback_modules','loss_modules','metric_modules','scheduler']
     
     def get_output_names(self):
-        return ['best_weights', 'last_model_weights', 'last_optimizer_state', 'checkpoint_path']
+        return ['best_weights', 'last_model_weights', 'last_optimizer_state', 'checkpoint_path', 'logged_metrics']
 
     def process(self):
         model = self.config['model']
@@ -69,5 +69,6 @@ class TorchTrainer(Task):
         outs.append(trainer.model.state_dict())
         outs.append(trainer.model.optimizers().state_dict())
         outs.append(model_ckpt_cb.dirpath)
+        outs.append(model.log_history)
 
         return tuple(outs)    
