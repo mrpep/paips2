@@ -25,6 +25,9 @@ class LabelEncoder(Task):
             ignore = [ignore]
         if encoding_type == 'integer':
             labels = data[column_in].loc[data[column_in].apply(lambda x: isinstance(x,str))].unique()
+            subset_dict = data[column_in].loc[data[column_in].apply(lambda x: isinstance(x,dict))]
+            if len(subset_dict)>0:
+                labels = set(subset_dict.apply(lambda x: list(x.keys())).sum()).union(labels)
             labels = [l for l in labels if l not in ignore]
             label_to_code_map = {l: i for i,l in enumerate(labels)}
             code_to_label_map = {i: l for i,l in enumerate(labels)}
@@ -44,8 +47,10 @@ class LabelEncoder(Task):
                     return {label_to_code_map[k]:v for k,v in x.items()}
                 else:
                     raise Exception('Unknown type: {}'.format(type(x)))
-
-            data[column_out] = data[column_in].apply(encode, convert_dtype=False)
+            try:
+                data[column_out] = data[column_in].apply(encode, convert_dtype=False)
+            except:
+                from IPython import embed; embed()
         return data, label_to_code_map, code_to_label_map, len(label_to_code_map)
 
 class OneHotVector(Task):
