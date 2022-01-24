@@ -52,7 +52,7 @@ class TorchDataset(Dataset):
 
 class TorchGenerator(Task):
     def get_valid_parameters(self):
-        return ['data'], ['shuffle', 'batch_size', 'data_processing_task','x_names','y_names','num_workers','data_processing_mods', 'vars']
+        return ['data'], ['shuffle', 'batch_size', 'data_processing_task','x_names','y_names','num_workers','data_processing_mods', 'vars', 'collate_fn']
 
     def process(self):
         if 'vars' in self.config:
@@ -62,9 +62,16 @@ class TorchGenerator(Task):
                                self.config.get('data_processing_mods'),
                                self.config.get('x_names','x'),
                                self.config.get('y_names','y'))
+        collate_fn = self.config.get('collate_fn',None)
+        if collate_fn is not None:
+            if collate_fn == 'identity':
+                def collate_fn(x):
+                    return x
+                    
         dataloader = DataLoader(dataset,
                                 self.config.get('batch_size',1),
                                 shuffle=self.config.get('shuffle',True),
-                                num_workers=self.config.get('num_workers',1))
+                                num_workers=self.config.get('num_workers',1),
+                                collate_fn=collate_fn)
         
         return dataloader

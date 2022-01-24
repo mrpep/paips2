@@ -247,6 +247,20 @@ class DataframeSampleNFromUniqueValues(Task):
         
         return pd.concat(sampled_dfs)
 
+class DataframeUnique(Task):
+    def get_valid_parameters(self):
+        return ['in', 'column'], []
+
+    def process(self):
+        data = self.config['in']
+        column = self.config['column']
+        is_list = data[column].apply(lambda x: isinstance(x,list))
+        unique_vals = set(data.loc[~is_list][column].unique())
+        if is_list.sum()>0:
+            unique_vals = unique_vals.union(set(data.loc[is_list][column].sum()))
+
+        return list(unique_vals)
+        
 class NanImputer(Task):
     def get_valid_parameters(self):
         return ['in','column'], ['mode','distribution']
