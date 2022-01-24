@@ -1,0 +1,14 @@
+loguru
+pandas
+plotly
+kahnfigh
+pyknife
+joblib
+soundfile
+pedalboard
+librosa
+nltk
+pymediainfo
+ray
+torch
+tensorflow
