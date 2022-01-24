@@ -31,8 +31,9 @@ class GraphModule(Task):
 
     def process(self):
         graph_name, graph_task = self.get_child_graph()
-        ins = {k: TaskIO(v,self._hash_config['in'][k],name=k,storage_device='memory') for k,v in self.config['in'].items()}
-        graph_task.config['in'].update(ins)
+        if 'in' in self.config:
+            ins = {k: TaskIO(v,self._hash_config['in'][k],name=k,storage_device='memory') for k,v in self.config['in'].items()}
+            graph_task.config['in'].update(ins)
         graph_task.export_path = self.export_path + '/{}'.format(self.name)
         graph_task.in_memory = True
         outs = graph_task.run()
