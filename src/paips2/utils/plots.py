@@ -28,7 +28,10 @@ def sankey_plot(tasks, output_path):
                     task_name_to_number[dep] = i
                     i += 1
                     label.append(dep)
-                    hover_data_i = generate_tooltip(dep, tasks[dep])
+                    try:
+                        hover_data_i = generate_tooltip(dep, tasks[dep])
+                    except:
+                        from IPython import embed; embed()
                     hover_data.append(hover_data_i)
                 target.append(task_name_to_number[task_name])
                 source.append(task_name_to_number[dep])

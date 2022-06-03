@@ -1,5 +1,3 @@
-import torch
-from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
@@ -25,14 +23,14 @@ class TorchPredictor(Task):
         model.load_state_dict(model_weights)
         preds = []
         targets = []
-        with torch.no_grad():
+        with torchml.no_grad():
             for x, target in data:
                 if not isinstance(x,(list,tuple)):
                     x = [x]
-                x = [x_i.to(model.device, dtype=model.dtype) for x_i in x if isinstance(x_i, torch.Tensor)]
+                x = [x_i.to(model.device, dtype=model.dtype) for x_i in x if isinstance(x_i, torchml.Tensor)]
                 preds.append(model(*x))
                 targets.append(target)
-            preds = torch.cat(preds)
-            targets = torch.cat(targets)
+            preds = torchml.cat(preds)
+            targets = torchml.cat(targets)
         
         return preds.detach().to('cpu').numpy(), targets.detach().to('cpu').numpy()

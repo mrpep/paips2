@@ -7,6 +7,7 @@ import time
 import os
 from pathlib import Path
 from ruamel.yaml import YAML
+from paips2.utils import fast_kahnfigh_access, fast_kahnfigh_assign, fast_kahnfigh_to_shallow
 
 class Task:
     def __init__(self, config, name=None, logger=None, global_flags={}, main=False):
@@ -33,10 +34,22 @@ class Task:
 
         self._dependency_paths = {k: v for k,v in self.config.to_shallow().items() if isinstance(v,str) and symbols['membership'] in v}
 
-    def reset(self, config=None):
+    def reset(self, config=None, replace_only_dependencies=False, persist_input=False):
+        s = time.time()
         if config is None:
             config = self.original_config
-        self.config = copy.deepcopy(config)
+        if replace_only_dependencies:
+            for k,v in fast_kahnfigh_to_shallow(config).items():
+                if isinstance(v,str) and (symbols['membership'] in v):
+                    if (v.split(symbols['membership'])[0] != 'self') or (not persist_input and v.split(symbols['membership'])[0] == 'self'): 
+                        #print(k)
+                        try:
+                            fast_kahnfigh_assign(self.config,k,v)
+                        except:
+                            print(k)
+        else:
+            self.config = copy.deepcopy(config)
+        #print('Reset {}: {}'.format(self.name,time.time() - s))
 
     def _check_parameters(self):
         required_params, optional_params = self.get_valid_parameters()
@@ -111,7 +124,10 @@ class Task:
         return dependencies
 
     def get_hash(self):
-        return self._hash_config.hash()
+        if self.config.get('hash',True):
+            return self._hash_config.hash()
+        else:
+            return '0'
 
     def get_output_names(self):
         #Overrideable
@@ -142,14 +158,21 @@ class Task:
         pass
     
     def run(self):
+        s = time.time()
         if self.is_lazy:
             output_names = ['out']
         else:
             output_names = self.get_output_names()
-        task_hash = self.get_hash()
+        try:
+            task_hash = self.get_hash()
+        except:
+            from IPython import embed; embed()
         if self.logger is not None:
             self.logger.debug('Task hash: {}'.format(task_hash),enqueue=True)
-        cache_results = self.search_cache(task_hash,output_names)
+        if self.cacheable:
+            cache_results = self.search_cache(task_hash,output_names)
+        else:
+            cache_results = None
         if (cache_results is not None) and self.cacheable: #Cache if possible
             extra_msg = '' if len(cache_results) == 1 else ' and {} more files'.format(len(cache_results) - 1)
             process_out = self.on_cache(cache_results,task_hash,output_names)
@@ -169,6 +192,7 @@ class Task:
                 process_out = self.process()
             task_end = time.time()
             execution_time = task_end - task_start
+            #print('{} Process time: {}'.format(self.name, execution_time))
             storage_device = 'memory'
             if self.logger is not None:
                 self.logger.success('Finished task: {} in {:.2f} s.'.format(self.name,execution_time),enqueue=True)
@@ -184,6 +208,7 @@ class Task:
                               ) for k,v in outs.items()}
         if self.do_export:
             self.export(outs)
+        #print('{} Run time: {}'.format(self.name, time.time() - s))
         return outs
 
     def search_cache(self,task_hash,output_names):
@@ -201,7 +226,10 @@ class Task:
         for k,v in self._dependency_paths.items():
             if v in data:
                 if data[v] is not None:
-                    self.config[k] = data[v].load()
+                    try:
+                        self.config[k] = data[v].load()
+                    except:
+                        from IPython import embed; embed()
                     if self.calculate_hashes:
                         self._hash_config[k] = '{}_{}'.format(data[v].hash,data[v].name)
                 else:

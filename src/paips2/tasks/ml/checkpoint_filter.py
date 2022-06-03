@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import joblib
-import torch
 
 def moving_average(a, n=3) :
     ret = np.cumsum(a, dtype=float)
@@ -57,7 +56,7 @@ class CheckpointFilter(Task):
         if swa>1:
             upper_lim = min(len(ckpts), best_epoch + swa//2)
             lower_lim = upper_lim - swa
-            swa_ckpts = [torch.load(v) for k,v in ckpts.items() if k>=lower_lim and k<upper_lim]
+            swa_ckpts = [torchml.load(v) for k,v in ckpts.items() if k>=lower_lim and k<upper_lim]
             swa_weights = {}
             for ckpt in swa_ckpts:
                 weights = ckpt['state_dict']
@@ -69,4 +68,4 @@ class CheckpointFilter(Task):
             swa_ckpts[0]['state_dict'] = swa_weights
             return swa_ckpts[0]
         else:
-            return torch.load(ckpts[best_epoch])
+            return torchml.load(ckpts[best_epoch])

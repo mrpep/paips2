@@ -12,12 +12,11 @@ class TimeFrequencyRepresentation(Task):
         else:
             return ['out']
 
-    def process(self):
+    def process_one(self,x):
         tfr = self.config.get('representation','melspectrogram')
         apply_log = self.config.get('log',False)
         log_offset = self.config.get('log_offset',1e-16)
         tfr_params = self.config.get('parameters',{})
-        x = self.config.get('in',None)
         if tfr == 'melspectrogram':
             y = librosa.feature.melspectrogram(x,**tfr_params)
         if apply_log:
@@ -34,6 +33,14 @@ class TimeFrequencyRepresentation(Task):
             y = np.concatenate((y,y_delta_delta),axis=-2)
 
         y = y.T
+
+        return y
+
+    def process(self):
+        x = self.config['in']
+        if not isinstance(x,list):
+            x = [x]
+        y = [self.process_one(xi) for xi in x]
 
         return y
 

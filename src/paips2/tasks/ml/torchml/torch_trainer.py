@@ -1,5 +1,3 @@
-import torch
-from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
@@ -65,7 +63,7 @@ class TorchTrainer(Task):
         model_ckpt_cb = [c for c in trainer.callbacks if c.__class__.__name__ == 'ModelCheckpoint'][0]
         outs = []
         if model_ckpt_cb.best_model_path != '':
-            outs.append(torch.load(model_ckpt_cb.best_model_path))
+            outs.append(torchml.load(model_ckpt_cb.best_model_path))
         outs.append(trainer.model.state_dict())
         outs.append(trainer.model.optimizers().state_dict())
         outs.append(model_ckpt_cb.dirpath)

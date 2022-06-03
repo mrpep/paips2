@@ -27,7 +27,7 @@ def add_arguments(argparser):
     argparser.add_argument('--experiment_name', type=str,
                            help='Name for the experiment', default=date_time)
     argparser.add_argument('--experiment_path', type=str, help='Output directory for symbolic links of cache',
-                           default='experiments/{}'.format(date_time))
+                           default='experiments/{}'.format(vars(argparser.parse_args())['experiment_name']))
     argparser.add_argument('--no-caching', dest='cache',
                            help='Run all', action='store_false', default=True)
     argparser.add_argument('--mods', dest='mods', type=str,
@@ -38,3 +38,39 @@ def add_arguments(argparser):
                            type=str, help='[sequential][ray]', default='sequential')
     argparser.add_argument('--explore', dest='explore',
                            type=str, help='Path to exploration python file', default=None)
+
+def fast_kahnfigh_access(c,key):
+    r = c.store
+    for k in key.split('/'):
+        try:
+            k = int(k)
+        except:
+            pass
+        r = r[k]
+    return r
+
+def fast_kahnfigh_assign(c,key,value):
+    r = c.store
+    k_parts = key.split('/')
+    for k in k_parts[:-1]:
+        try:
+            k = int(k)
+        except:
+            pass
+        r = r[k]
+    r[k_parts[-1]] = value
+
+def tree_iterate(e, e_path, shallow_d):
+    if isinstance(e,list):
+        for i,ei in enumerate(e):
+            tree_iterate(ei,'{}/{}'.format(e_path,i),shallow_d)
+    elif isinstance(e,dict):
+        for k,v in e.items():
+            tree_iterate(v,'{}/{}'.format(e_path,k),shallow_d)
+    else:
+        shallow_d[e_path[1:]] = e
+
+def fast_kahnfigh_to_shallow(c):
+    shallow_d = {}
+    tree_iterate(c.store,'',shallow_d)
+    return shallow_d

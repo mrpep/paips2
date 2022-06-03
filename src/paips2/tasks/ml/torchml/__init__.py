@@ -4,7 +4,7 @@ from .torch_predictor import TorchPredictor
 
 from paips2.core import Task
 from pathlib import Path
-import torch
+
 import re
 
 class TorchSWAModel(Task):
@@ -22,7 +22,7 @@ class TorchSWAModel(Task):
 
         swa_weights = {}
         for ckpt in last_ckpts:
-            weights = torch.load(ckpt)['state_dict']
+            weights = torchml.load(ckpt)['state_dict']
             for k,v in weights.items():
                 if k not in swa_weights:
                     swa_weights[k] = v/len(last_ckpts)

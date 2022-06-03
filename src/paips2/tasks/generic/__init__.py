@@ -6,6 +6,18 @@ import subprocess
 import os
 import numpy as np
 
+class ExecuteTask(Task):
+    def get_valid_parameters(self):
+        return ['task'], []
+    
+    def get_output_names(self):
+        return self.config['task'].get_output_names()
+
+    def process(self):
+        outs = self.config['task'].run()
+        outs = [outs['{}->{}'.format(self.config['task'].name, out_name)].load() for out_name in self.get_output_names()]
+        return tuple(outs)
+
 class PythonFunction(Task):
     def get_valid_parameters(self):
         return ['file_path','function_name'], ['function_args', 'function_kwargs']
@@ -23,7 +35,7 @@ class PythonFunction(Task):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         func = getattr(module,func_name)
-
+        print(func_kwargs)
         return func(*func_args,**func_kwargs)
 
 class ShScript(Task):

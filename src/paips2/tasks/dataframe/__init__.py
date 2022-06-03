@@ -144,7 +144,14 @@ class DataframeConcatenate(Task):
 
     def process(self):
         if isinstance(self.config['in'],list) and len(self.config['in']) > 1:
-            return pd.concat(self.config['in'], axis=self.config.get('axis',0))
+            to_concat = []
+            for l in self.config['in']:
+                if isinstance(l,list):
+                    for l_i in l:
+                        to_concat.append(l_i)
+                else:
+                    to_concat.append(l)
+            return pd.concat(to_concat, axis=self.config.get('axis',0))
         elif isinstance(self.config['in'],list) and len(self.config['in']) == 1:
             return self.config['in'][0]
         else:
@@ -255,7 +262,8 @@ class DataframeUnique(Task):
         data = self.config['in']
         column = self.config['column']
         is_list = data[column].apply(lambda x: isinstance(x,list))
-        unique_vals = set(data.loc[~is_list][column].unique())
+        is_na = data[column].isna()
+        unique_vals = set(data.loc[(~is_list)&(~is_na)][column].unique())
         if is_list.sum()>0:
             unique_vals = unique_vals.union(set(data.loc[is_list][column].sum()))
 

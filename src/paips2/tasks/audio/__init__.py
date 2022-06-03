@@ -5,6 +5,7 @@ import pedalboard
 from paips2.utils import get_classes_in_module
 from pathlib import Path
 import librosa
+from .augmentations import *
 
 class ReadAudio(Task):
     def get_valid_parameters(self):
