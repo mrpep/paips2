@@ -18,7 +18,7 @@ class Graph(Task):
         self.compiled = False
 
     def get_valid_parameters(self):
-        return ['tasks'], ['task_modules','out','children_backend','persist_input', 'recompile_graph', 'probability']
+        return ['tasks'], ['task_modules','out','children_backend','persist_input', 'recompile_graph', 'probability', 'plot_graph']
 
     def get_dependencies(self):
         dependencies = []
@@ -45,6 +45,7 @@ class Graph(Task):
             if (not self.is_main) and (self.export_path is not None):
                 v.export_path = self.export_path + '/{}'.format(self.name)
         if self.plot_graph:
+            #print(self.name)
             if self.is_main:
                 sankey_plot(self.tasks, Path(self.export_path,'main_graph.html')) #Plotea el grafo y lo guarda en un html
             else:
