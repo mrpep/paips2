@@ -22,7 +22,7 @@ class Normalize(Task):
 
 class CutPad(Task):
     def get_valid_parameters(self):
-        return ['in'], ['fixed_len','max_len']
+        return ['in'], ['fixed_len','max_len','axis']
 
     def process_one(self, x):
         if self.config.get('fixed_len') is not None:
@@ -32,9 +32,12 @@ class CutPad(Task):
             else:
                 x = np.pad(x,((0,0),(0,self.config.get('fixed_len')-x.shape[-1])),'constant')
         elif self.config.get('max_len') is not None:
-            if x.shape[-1] > self.config.get('max_len'):
-                i = np.random.randint(0,x.shape[-1] - self.config.get('max_len'))
-                x = x[:,i:i+self.config.get('max_len')]    
+            cut_axis = self.config.get('axis',-1)
+            if x.shape[cut_axis] > self.config.get('max_len'):
+                i = np.random.randint(0,x.shape[cut_axis] - self.config.get('max_len'))
+                sl = [slice(None)]*len(x.shape)
+                sl[cut_axis] = slice(i, i+self.config.get('max_len'))
+                x = x[sl]    
 
         return x
 

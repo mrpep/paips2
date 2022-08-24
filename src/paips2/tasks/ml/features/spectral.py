@@ -1,6 +1,7 @@
 from paips2.core import Task
 import librosa
 import numpy as np
+import random
 
 class TimeFrequencyRepresentation(Task):
     def get_valid_parameters(self):
@@ -44,3 +45,31 @@ class TimeFrequencyRepresentation(Task):
 
         return y
 
+class SpecAugment(Task):
+    def get_valid_parameters(self):
+        return ['in'], ['max_frequency_gap_size', 'max_time_gap_size', 'probability', 'mask_val']
+
+    def process_one(self, x):
+        p = self.config.get('probability',1)
+        max_f_gap = self.config.get('max_frequency_gap_size',48)
+        max_t_gap = self.config.get('max_time_gap_size',192)
+        mask_val = self.config.get('mask_val',0)
+        augment = random.uniform(0,1) < p
+        if augment:
+            f_gap_size = random.randint(0, min(max_f_gap, x.shape[1]))
+            t_gap_size = random.randint(0, min(max_t_gap, x.shape[0]))
+            f_gap_idx = random.randint(0,x.shape[1]-f_gap_size)
+            t_gap_idx = random.randint(0,x.shape[0]-t_gap_size)
+            x[t_gap_idx:t_gap_idx+t_gap_size]=mask_val
+            x[:,f_gap_idx:f_gap_idx+f_gap_size]=mask_val
+            return x
+        else:
+            return x
+
+    def process(self):
+        x = self.config['in']
+        if not isinstance(x,list):
+            x = [x]
+        y = [self.process_one(xi) for xi in x]
+
+        return y

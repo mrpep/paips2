@@ -71,6 +71,7 @@ def replace_var_dollars(conf, global_config, default_config):
                         v = [v.replace('$'+v_occ+'$',v_i) for v_i in replacement]
                     else:
                         v = v.replace('$'+v_occ+'$',str(replacement))
+        
         conf[new_k] = v
         if drop_k:
             conf.pop(k)
@@ -95,7 +96,8 @@ def include_config(conf,special_tags=None,global_config=None,default_config=None
         p_parent = '/'.join(p.split('/')[:-1]) if '/' in p else None
         for c in conf[p]:
             imported_config = Config(c['config'],yaml_tags=special_tags)
-            imported_config, global_config, default_config = process_config(imported_config, global_config, default_config)
+            imported_config_mods = c.get('mods')
+            imported_config, global_config, default_config = process_config(imported_config, global_config, default_config, mods=imported_config_mods)
             global_config.update(imported_config.get('vars',{}))
             default_config.update(imported_config.get('default_vars',{}))
             if 'vars' in imported_config:

@@ -18,7 +18,7 @@ class AudioDatasetFromDirectory(Task):
 
     def extract_audio_metadata(self, f, dataset_path):
         #Extract audio info:
-        if f.suffix == '.wav':
+        if f.suffix in ['.wav', '.flac']:
             #audio_metadata = sf.info(f).__dict__
             #audio_metadata['absolute_path'] = str(f.absolute())
             audio_metadata = {}

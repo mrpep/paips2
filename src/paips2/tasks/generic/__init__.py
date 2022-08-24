@@ -5,6 +5,7 @@ import shlex
 import subprocess
 import os
 import numpy as np
+import joblib
 
 class ExecuteTask(Task):
     def get_valid_parameters(self):
@@ -20,22 +21,26 @@ class ExecuteTask(Task):
 
 class PythonFunction(Task):
     def get_valid_parameters(self):
-        return ['file_path','function_name'], ['function_args', 'function_kwargs']
+        return ['function_name'], ['file_path','module','function_args', 'function_kwargs']
     
     def get_output_names(self):
         return self.config.get('output_names',['out'])
 
     def process(self):
         file_path = self.config.get('file_path')
+        module = self.config.get('module')
         func_name = self.config.get('function_name')
         func_args = self.config.get('function_args',[])
         func_kwargs = self.config.get('function_kwargs',{})
         
-        spec = importlib.util.spec_from_file_location(Path(file_path).stem, file_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        if file_path is not None:
+            spec = importlib.util.spec_from_file_location(Path(file_path).stem, file_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        elif module is not None:
+            module = importlib.import_module(module)
+
         func = getattr(module,func_name)
-        print(func_kwargs)
         return func(*func_args,**func_kwargs)
 
 class ShScript(Task):
@@ -68,6 +73,19 @@ class ShScript(Task):
                     executable=executable)
 
         return normal.stdout, normal.stderr
+
+class TaskFromExport(Task):
+    def get_valid_parameters(self):
+        return ['dir'], []
+
+    def get_output_names(self):
+        files = list(Path(self.config['dir']).glob('*'))
+        files = [f for f in files if '.' not in f.name]
+        return [f.stem for f in files]
+
+    def process(self):
+        out_names = self.get_output_names()
+        return tuple([joblib.load(Path(self.config['dir'],o)) for o in out_names])
 
 class Len(Task):
     def get_valid_parameters(self):

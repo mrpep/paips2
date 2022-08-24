@@ -67,7 +67,6 @@ class DataframeFilter(Task):
         column_in = self.config.get('column')
         column_value = self.config.get('column_value')
         column_exclude_value = self.config.get('column_exclude_value')
-
         if column_value is not None:
             if isinstance(column_value,str):
                 column_value = [column_value]
@@ -79,7 +78,7 @@ class DataframeFilter(Task):
             df = df.loc[~df[column_in].isin(column_exclude_value)]
 
         return df
-
+    
 class DataframeFilterByColumn(Task):
     #Returns dataframes with unique values in the column
     def get_valid_parameters(self):
