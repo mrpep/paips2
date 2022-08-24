@@ -34,8 +34,18 @@ class GraphModule(Task):
         if 'in' in self.config:
             ins = {k: TaskIO(v,self._hash_config['in'][k],name=k,storage_device='memory') for k,v in self.config['in'].items()}
             graph_task.config['in'].update(ins)
-        graph_task.export_path = self.export_path + '/{}'.format(self.name)
+        if self.export_path is not None:
+            graph_task.export_path = self.export_path + '/{}'.format(self.name)
+        else:
+            graph_task.export_path = None
         graph_task.in_memory = True
+        graph_task.simulate = self.simulate
+        if self.simulate:
+            if hasattr(self, 'simulation_result'):
+                graph_task.simulation_result = self.simulation_result
+            else:
+                graph_task.simulation_result = {}
+
         outs = graph_task.run()
         out_names = graph_task.get_output_names()
         if not isinstance(out_names, list):

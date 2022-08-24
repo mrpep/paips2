@@ -42,10 +42,16 @@ class Graph(Task):
         self.tasks = gather_tasks(self.config, self.logger, self.global_flags) #Arma el diccionario de tareas a partir del archivo de configuracion
         for k,v in self.tasks.items():
             v.calculate_hashes = self.calculate_hashes
+            v.simulate = self.simulate
+            if self.simulate:
+                if hasattr(self, 'simulation_result'):
+                    v.simulation_result = self.simulation_result
+                else:
+                    v.simulation_result = {}
+            
             if (not self.is_main) and (self.export_path is not None):
                 v.export_path = self.export_path + '/{}'.format(self.name)
-        if self.plot_graph:
-            #print(self.name)
+        if (self.plot_graph) and (self.export_path is not None):
             if self.is_main:
                 sankey_plot(self.tasks, Path(self.export_path,'main_graph.html')) #Plotea el grafo y lo guarda en un html
             else:
@@ -82,12 +88,17 @@ class Graph(Task):
         except:
             from IPython import embed; embed()
         
+    def save_config(self):
+        self.original_config.save(Path(self.export_path,'config.yaml'))
 
     def process(self):
+        if (self.do_export) and (self.export_path is not None) and (not self.simulate):
+            self.save_config()
         if self.config.get('recompile_graph',True) or (not self.compiled):
             self.make_dag()
-            #self.dag_config = copy.deepcopy(self.config)
             if self.config.get('probability', None) is not None:
+                if isinstance(self.config['probability'],str):
+                    print(self.config['probability'])
                 dice = random.uniform(0,1)
                 if dice < self.config['probability']:
                     result = self.run_through_graph()
@@ -97,7 +108,6 @@ class Graph(Task):
                 result = self.run_through_graph()
             self.compiled = True
         else:
-            #self.reset(self.dag_config,replace_only_dependencies=True)
             if self.config.get('probability', None) is not None:
                 dice = random.uniform(0,1)
                 if dice < self.config['probability']:
@@ -106,6 +116,7 @@ class Graph(Task):
                     result = tuple(self.config['in'].values())
             else:
                 result = self.run_through_graph()
+
         return result
 
     def reset(self,config=None, replace_only_dependencies=False, persist_input=False):

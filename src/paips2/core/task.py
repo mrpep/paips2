@@ -35,21 +35,18 @@ class Task:
         self._dependency_paths = {k: v for k,v in self.config.to_shallow().items() if isinstance(v,str) and symbols['membership'] in v}
 
     def reset(self, config=None, replace_only_dependencies=False, persist_input=False):
-        s = time.time()
         if config is None:
             config = self.original_config
         if replace_only_dependencies:
             for k,v in fast_kahnfigh_to_shallow(config).items():
                 if isinstance(v,str) and (symbols['membership'] in v):
                     if (v.split(symbols['membership'])[0] != 'self') or (not persist_input and v.split(symbols['membership'])[0] == 'self'): 
-                        #print(k)
                         try:
                             fast_kahnfigh_assign(self.config,k,v)
                         except:
                             print(k)
         else:
             self.config = copy.deepcopy(config)
-        #print('Reset {}: {}'.format(self.name,time.time() - s))
 
     def _check_parameters(self):
         required_params, optional_params = self.get_valid_parameters()
@@ -105,7 +102,7 @@ class Task:
                         v = ''
                     else:
                         v = '_v{}'.format(version_number-1)
-                    self.original_config.save(Path(destination_path.parent,'config{}.yaml'.format(v)))
+                self.original_config.save(Path(destination_path.parent,'config{}.yaml'.format(v)))
 
     def on_export(self, outs):
         #Overrideable to save custom files like .csv, plots, etc...
@@ -125,7 +122,8 @@ class Task:
 
     def get_hash(self):
         if self.config.get('hash',True):
-            return self._hash_config.hash()
+            hash_val = self._hash_config.hash()
+            return hash_val
         else:
             return '0'
 
@@ -163,52 +161,62 @@ class Task:
             output_names = ['out']
         else:
             output_names = self.get_output_names()
+
         try:
             task_hash = self.get_hash()
         except:
-            from IPython import embed; embed()
+            raise Exception('Could not generate hash from config in task {}'.format(self.name))
+
         if self.logger is not None:
             self.logger.debug('Task hash: {}'.format(task_hash),enqueue=True)
+
         if self.cacheable:
             cache_results = self.search_cache(task_hash,output_names)
         else:
             cache_results = None
-        if (cache_results is not None) and self.cacheable: #Cache if possible
-            extra_msg = '' if len(cache_results) == 1 else ' and {} more files'.format(len(cache_results) - 1)
-            process_out = self.on_cache(cache_results,task_hash,output_names)
-            storage_device = 'disk'
-            cached = True
-            if self.logger is not None:
-                self.logger.success('Cached task: {} from {}{}'.format(self.name, cache_results[0], extra_msg),enqueue=True)
-        else: #Run task if not possible
-            cached = False
-            if self.logger is not None:
-                self.logger.info('Running task: {}'.format(self.name),enqueue=True)
-            task_start = time.time()
-            if self.is_lazy:
-                self.is_lazy = False
-                process_out = self
-            else:
-                process_out = self.process()
-            task_end = time.time()
-            execution_time = task_end - task_start
-            #print('{} Process time: {}'.format(self.name, execution_time))
+        if not (self.simulate and ((self.name != 'main_graph') and (self.config.get('class') not in ['Graph', 'GraphModule']))):
+            if (cache_results is not None) and self.cacheable: #Cache if possible
+                extra_msg = '' if len(cache_results) == 1 else ' and {} more files'.format(len(cache_results) - 1)
+                process_out = self.on_cache(cache_results,task_hash,output_names)
+                storage_device = 'disk'
+                cached = True
+                if self.logger is not None:
+                    self.logger.success('Cached task: {} from {}{}'.format(self.name, cache_results[0], extra_msg),enqueue=True)
+            else: #Run task if not possible
+                cached = False
+                if self.logger is not None:
+                    self.logger.info('Running task: {}'.format(self.name),enqueue=True)
+                task_start = time.time()
+                if self.is_lazy:
+                    self.is_lazy = False
+                    process_out = self
+                else:
+                    process_out = self.process()
+                task_end = time.time()
+                execution_time = task_end - task_start
+
+                storage_device = 'memory'
+                if self.logger is not None:
+                    self.logger.success('Finished task: {} in {:.2f} s.'.format(self.name,execution_time),enqueue=True)
+        else:
+            process_out = [None]*len(output_names)
             storage_device = 'memory'
-            if self.logger is not None:
-                self.logger.success('Finished task: {} in {:.2f} s.'.format(self.name,execution_time),enqueue=True)
+            cached = False
+            if not hasattr(self, 'simulation_result'):
+                self.simulation_result = {}
+            self.simulation_result[self.name] = task_hash
 
         outs = self.format_outputs(process_out, output_names, task_hash, storage_device=storage_device)
 
-        if (not self.in_memory) and (not cached): #Save outputs if not caching
+        if (not self.in_memory) and (not cached) and (not self.simulate): #Save outputs if not caching
             outs = {k: v.save(self.cache_path,
                               export_path=self.export_path,
                               compression_level=self.config.get('cache_compression', self.global_flags.get('cache_compression',0)),
                               export=True,
                               cache_db=self.global_flags.get('cache_db')
                               ) for k,v in outs.items()}
-        if self.do_export:
+        if (self.do_export) and (self.export_path is not None) and (not self.simulate):
             self.export(outs)
-        #print('{} Run time: {}'.format(self.name, time.time() - s))
         return outs
 
     def search_cache(self,task_hash,output_names):

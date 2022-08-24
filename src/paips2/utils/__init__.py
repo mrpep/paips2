@@ -26,8 +26,10 @@ def add_arguments(argparser):
     argparser.add_argument('--silent', action='store_true', default=False,help='Deactivate logging')
     argparser.add_argument('--experiment_name', type=str,
                            help='Name for the experiment', default=date_time)
+    #argparser.add_argument('--experiment_path', type=str, help='Output directory for symbolic links of cache',
+    #                       default='experiments/{}'.format(vars(argparser.parse_args())['experiment_name']))
     argparser.add_argument('--experiment_path', type=str, help='Output directory for symbolic links of cache',
-                           default='experiments/{}'.format(vars(argparser.parse_args())['experiment_name']))
+                            default=None)
     argparser.add_argument('--no-caching', dest='cache',
                            help='Run all', action='store_false', default=True)
     argparser.add_argument('--mods', dest='mods', type=str,
@@ -74,3 +76,45 @@ def fast_kahnfigh_to_shallow(c):
     shallow_d = {}
     tree_iterate(c.store,'',shallow_d)
     return shallow_d
+
+from kahnfigh import Config
+from kahnfigh.utils import IgnorableTag
+from paips2.core import Graph
+from paips2.core.compose import process_config
+from paips2.core.settings import ignorable_tags
+from pathlib import Path
+import joblib
+
+def get_experiment_output(config_path,tasks,cache_path='cache',mods=None):
+    config = Config(config_path,
+              yaml_tags=[IgnorableTag('!{}'.format(tag)) for tag in ignorable_tags])
+    config['class'] = 'Graph'
+    config, global_config, default_config = process_config(config, mods=mods,logger=None)
+
+    args = {'config_path': config_path, 
+            'experiment_path': 'experiments', 
+            'cache_path': cache_path}
+
+    args['task_modules'] = config.get('task_modules',[])
+    graph = Graph(config=config, name='main_graph',logger=None, global_flags=args, main=True)
+    graph.cacheable = False
+    graph.simulate = True
+    if graph.simulate:
+        graph.simulation_result = {}
+    graph.run()
+
+    if isinstance(tasks,str):
+        tasks = [tasks]
+
+    task_outs = {}
+    for t in tasks:
+        if t not in graph.simulation_result:
+            raise Exception('The {} task was not found in the experiment outputs. Available tasks are: {}'.format(t, list(graph.simulation_result.keys())))
+        else:
+            task_hash = graph.simulation_result[t]
+            available_files = list(Path(cache_path,task_hash).glob('*'))
+            if len(available_files) == 0:
+                raise Exception('The {} task was probably ran in memory or the cache outputs deleted'.format(t))
+            task_outs[t] = {Path(f).stem: joblib.load(f) for f in available_files}
+
+    return task_outs

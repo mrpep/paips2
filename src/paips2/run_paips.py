@@ -47,16 +47,25 @@ def main():
             init_backend(a['backend'])
             graph = Graph(config=c, name='main_graph',logger=logger, global_flags=a, main=True)
             graph.cacheable = False
+            graph.simulate = args['simulate']
+            if graph.simulate:
+                graph.simulation_result = {}
             graph.run()
             logger.remove(sink_id) 
     else:
+        if args['experiment_path'] is None:
+            args['experiment_path'] = 'experiments'
         if not Path(args['experiment_path']).exists():
-            Path(args['experiment_path']).mkdir(parents=True)
+            Path(args['experiment_path'],args['experiment_name']).mkdir(parents=True)
+        args['experiment_path'] = '{}/{}'.format(args['experiment_path'], args['experiment_name'])
         sink_id = logger.add(Path(args['experiment_path'],'logs'))
         logger.info('Using backend {}'.format(args['backend']))
         init_backend(args['backend'])
         logger.info('Running experiment {}. Outputs will be saved in {}'.format(args['experiment_name'], args['experiment_path']))
         graph = Graph(config=config, name='main_graph',logger=logger, global_flags=args, main=True)
+        graph.simulate = args['simulate']
+        if graph.simulate:
+            graph.simulation_result = {}
         graph.cacheable = False
         graph.run()
     shutdown_backend(args['backend'])

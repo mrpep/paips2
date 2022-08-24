@@ -1,5 +1,6 @@
 import heapq
 from paips2.utils import get_modules, get_classes_in_module
+import time
 
 def enqueue_tasks(tasks, to_do_tasks, done_tasks):
     # Recibe un diccionario tasks <nombre, task>, 
