@@ -30,6 +30,7 @@ class Task:
         self.calculate_hashes = True
 
         self._check_parameters()
+        self.not_cachable_keys = []
         self._make_hash_config()
 
         self._dependency_paths = {k: v for k,v in self.config.to_shallow().items() if isinstance(v,str) and symbols['membership'] in v}
@@ -146,6 +147,7 @@ class Task:
             if isinstance(v,str) and v.startswith('!no-cache'):
                 self._hash_config.pop(k)
                 self.config[k] = yaml_processor.load(v.split('!no-cache ')[-1])
+                self.not_cachable_keys.append(k)
 
     def on_cache(self, cache_files, task_hash, output_names):
         #This can be overriden

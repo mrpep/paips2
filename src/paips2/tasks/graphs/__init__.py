@@ -46,6 +46,13 @@ class GraphModule(Task):
             else:
                 graph_task.simulation_result = {}
 
+        prefix_nck = 'graph/{}/'.format(graph_task.name)
+        child_nck = [nck.split(prefix_nck)[-1] if nck.startswith(prefix_nck) else nck for nck in self.not_cachable_keys]
+        graph_task.not_cachable_keys.extend(child_nck)
+        for k in graph_task.not_cachable_keys:
+            if k in graph_task._hash_config:
+                graph_task._hash_config.pop(k)
+
         outs = graph_task.run()
         out_names = graph_task.get_output_names()
         if not isinstance(out_names, list):

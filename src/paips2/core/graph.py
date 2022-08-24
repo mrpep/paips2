@@ -40,8 +40,16 @@ class Graph(Task):
 
     def make_dag(self):
         self.tasks = gather_tasks(self.config, self.logger, self.global_flags) #Arma el diccionario de tareas a partir del archivo de configuracion
+        for k in self.not_cachable_keys:
+            if k in self._hash_config:
+                self._hash_config.pop(k)
         for k,v in self.tasks.items():
             v.calculate_hashes = self.calculate_hashes
+            for ck in self.not_cachable_keys:
+                if ck.startswith('tasks/{}'.format(k)):
+                    child_k = ck.split('tasks/{}/'.format(k))[-1]
+                    v.not_cachable_keys.append(child_k)
+                    v._hash_config.pop(child_k)
             v.simulate = self.simulate
             if self.simulate:
                 if hasattr(self, 'simulation_result'):
@@ -123,8 +131,3 @@ class Graph(Task):
         if config is None:
             config = self.original_config
         super().reset(config, replace_only_dependencies=replace_only_dependencies, persist_input=self.config.get('persist_input',False))
-
-        #if hasattr(self,'tasks'):
-        #    for t_name,t in self.tasks.items():
-        #        t.reset(Config(config['tasks'][t_name]),replace_only_dependencies=replace_only_dependencies)
-        
